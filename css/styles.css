@@ -240,13 +240,13 @@ input[type=checkbox]:checked {
   font-size: 14px; font-weight: 700; line-height: 1.1; color: var(--ink);
 }
 .nb-tabs button:hover { background: var(--paper); }
-.nb-tabs button.on { background: var(--ink); color: var(--paper); }
+.nb-tabs button.on { background: var(--paper); box-shadow: 0 1px 3px rgba(46, 39, 72, .2); }
 
-.note { background: var(--butter); border-radius: 14px; padding: 16px 18px; margin-bottom: 26px; }
-.note h2 { font-size: 17px; margin: 0 0 4px; }
+.note { background: var(--butter); border-radius: 14px; padding: 14px 16px; margin-bottom: 26px; }
+.note h2 { font-size: 16px; margin: 0 0 2px; }
 .note p { margin: 0; }
-.note .btn { margin-top: 12px; }
-.note.warn { background: #ffe1da; box-shadow: inset 4px 0 0 var(--coral); }
+.note .btn { margin-top: 10px; background: var(--paper); }
+.note.warn { background: #fdece7; }
 .note + .note { margin-top: -14px; }
 .status { list-style: none; padding: 0; margin: 8px 0 10px; }
 .status li { padding: 12px 0 12px 22px; border-top: 1.5px solid var(--line); position: relative; }
@@ -254,15 +254,6 @@ input[type=checkbox]:checked {
 .status li.good::before { background: var(--leaf); }
 .status li.bad::before { background: var(--coral); }
 
-.hide-block {
-  display: flex; flex-direction: column; align-items: flex-start; width: 100%; text-align: left;
-  padding: 18px 20px; margin-bottom: 12px; border: 0; border-radius: 14px;
-  background: var(--ink); color: var(--paper);
-}
-.hide-block > b { font-size: 24px; line-height: 1.15; }
-.hide-block > span { font-size: 15px; margin-top: 2px; }
-.hide-block kbd { border-color: rgba(255, 255, 255, .5); }
-.hide-block + .btn { margin-bottom: 2px; }
 .sos-btn {
   white-space: nowrap;
   border-radius: 12px; padding: 10px 16px; font-weight: 700; font-size: 16px; text-decoration: none;

@@ -206,12 +206,12 @@ function keepSafeWarnings() {
   } else if (persisted === false) {
     out.push(`<div class="note warn"><h2>${t('warn.persist.title')}</h2>
       <p>${t('warn.persist.body')} ${IS_INSTALLED ? '' : t('warn.persist.install') + ' '}${t('warn.persist.backup')}</p>
-      <button class="btn primary sm" data-act="export">${t('backup.download')}</button></div>`);
+      <button class="btn ghost sm" data-act="export">${t('backup.download')}</button></div>`);
   }
   if (backupDue(d)) {
     out.push(`<div class="note"><h2>${t('warn.backup.title')}</h2>
       <p>${d.lastBackup ? t('warn.backup.last', { days: tn('days', daysSince(d.lastBackup)) }) : t('warn.backup.never')} ${t('warn.backup.why')}</p>
-      <button class="btn primary sm" data-act="export">${t('backup.download')}</button></div>`);
+      <button class="btn ghost sm" data-act="export">${t('backup.download')}</button></div>`);
   }
   return out.join('');
 }
@@ -227,7 +227,6 @@ function homeView() {
       </div>` : ''}
     ${keepSafeWarnings()}
     ${intro(t('home.title'), t('home.lede'))}
-    <button class="hide-block" data-act="exit"><b>${t('home.hide.title')}</b><span>${t('home.hide.body', { esc: kbOnly(t('home.hide.esc')) })}</span></button>
     <button class="btn primary full big" data-act="new-entry">${t('home.write')}</button>
     <button class="btn link" data-act="quick-note">${t('home.quick')}</button>
 
@@ -331,7 +330,7 @@ const resourceItem = r => `
     <b>${r.name}</b>
     <p>${r.desc}</p>
     <div class="actions">
-      ${r.call ? `<a class="btn primary sm" href="${telLink(r.call)}">${t('help.callNum', { n: r.callLabel })}</a>` : ''}
+      ${r.call ? `<a class="btn ghost sm" href="${telLink(r.call)}">${t('help.callNum', { n: r.callLabel })}</a>` : ''}
       ${r.alt ? `<a class="btn ghost sm" href="${telLink(r.alt.call)}">${t('help.callNum', { n: r.alt.callLabel })}</a>` : ''}
       ${r.text ? `<a class="btn ghost sm" href="${smsLink(r.text.to, r.text.body)}">${r.text.label}</a>` : ''}
       ${r.web ? `<a class="btn link sm" href="${r.web}" target="_blank" rel="noopener noreferrer">${t('website')}</a>` : ''}
