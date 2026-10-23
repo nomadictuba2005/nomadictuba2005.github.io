@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#ffe7a3"/>
+  <g transform="translate(196 190) scale(2.4)" style="mix-blend-mode:multiply">
+    <path transform="translate(7 6)" fill="#ff8e72" d="M0-52c30 0 54 20 53 52S30 53 0 52-53 32-52 0-30-52 0-52z"/>
+    <path fill="#ffc93c" d="M0-52c30 0 54 20 53 52S30 53 0 52-53 32-52 0-30-52 0-52z"/>
+  </g>
+  <g transform="translate(286 332) scale(2.05)">
+    <g>
+      <path transform="translate(7 6)" style="mix-blend-mode:multiply" fill="#f2a99a" d="M-62 40a30 30 0 0 1 4-60 42 42 0 0 1 80-12 32 32 0 0 1 42 40 26 26 0 0 1-6 32z"/>
+      <path fill="#ffffff" d="M-62 40a30 30 0 0 1 4-60 42 42 0 0 1 80-12 32 32 0 0 1 42 40 26 26 0 0 1-6 32z"/>
+    </g>
+    <circle cx="-8" cy="14" r="5" fill="#2e2748"/><circle cx="16" cy="14" r="5" fill="#2e2748"/>
+  </g>
+</svg>

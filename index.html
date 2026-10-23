@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffe7a3">
+  <meta name="description" content="Breeze is a cozy little weather app.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Breeze">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="referrer" content="no-referrer">
+  <title>Breeze</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="preload" href="fonts/bagel-fat-one.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <main id="weather" class="wx" data-sky="sun">
+    <header class="wx-top">
+      <form id="wx-search" class="wx-search" role="search" autocomplete="off">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="wx-q" type="search" name="breeze-city" placeholder="Search for a city" enterkeyhint="search"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Search for a city">
+      </form>
+      <button id="wx-locate" class="wx-btn" aria-label="Use my location">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+      </button>
+      <button id="wx-unit" class="wx-btn" aria-label="Switch between Fahrenheit and Celsius">°F</button>
+    </header>
+    <ul id="wx-results" class="wx-results" hidden></ul>
+
+    <section class="wx-now">
+      <h1 id="wx-city" class="wx-city">Finding your weather</h1>
+      <p id="wx-date" class="wx-date"></p>
+      <div class="wx-hero">
+        <p id="wx-temp" class="wx-temp">--°</p>
+        <div id="wx-art" class="wx-art"></div>
+      </div>
+      <p id="wx-summary" class="wx-summary"></p>
+      <p id="wx-hilo" class="wx-hilo"></p>
+    </section>
+
+    <section class="wx-sheet">
+      <h2>Next 24 hours</h2>
+      <div id="wx-line" class="wx-line"></div>
+      <dl class="wx-facts">
+        <div><dt>Wind</dt><dd id="wx-wind">--</dd></div>
+        <div><dt>Humidity</dt><dd id="wx-hum">--</dd></div>
+        <div><dt>UV index</dt><dd id="wx-uv">--</dd></div>
+      </dl>
+      <h2>This week</h2>
+      <ul id="wx-daily" class="wx-daily"></ul>
+      <p class="wx-foot">Forecast from Open-Meteo</p>
+    </section>
+  </main>
+
+  <div id="hub" class="hub" hidden></div>
+
+  <div id="setup" class="setup" hidden></div>
+
+  <div id="print-report"></div>
+</body>
+</html>
