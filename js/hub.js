@@ -528,8 +528,9 @@ function entryEditor(id) {
         </div>
       </fieldset>
       <label>${t('entry.hurt')}<textarea name="injuries" rows="2" placeholder="${t('entry.hurt.ph')}">${esc(e.injuries)}</textarea></label>
-      <fieldset><legend>${t('entry.photos')} <span>${t('entry.photos.hint')}</span></legend>
+      <fieldset><legend>${t('entry.photos')}</legend>
         <div class="photos" id="photos"></div>
+        <p class="hint">${t('entry.photos.hint')}</p>
       </fieldset>
       <label>${t('entry.where')}<input name="where" value="${esc(e.where)}"></label>
       <label>${t('entry.witnesses')}<input name="witnesses" value="${esc(e.witnesses)}" placeholder="${t('entry.witnesses.ph')}"></label>
@@ -550,7 +551,8 @@ function renderPhotos() {
   box.innerHTML = draft.e.photos.map(id => `
     <div class="photo"><img data-blob="${id}" alt="" data-act="view">
       <button type="button" class="photo-x" data-act="photo-remove" data-id="${id}" aria-label="${t('entry.removePhoto')}">${icon('x')}</button></div>`).join('')
-    + `<label class="photo-add">${icon('camera')}<span>${t('entry.addPhoto')}</span><input type="file" accept="image/*" multiple hidden data-entry-photo></label>`;
+    + `<label class="photo-add">${icon('camera')}<span>${t('entry.takePhoto')}</span><input type="file" accept="image/*" capture="environment" hidden data-entry-photo></label>`
+    + `<label class="photo-add">${icon('image')}<span>${t('entry.addPhoto')}</span><input type="file" accept="image/*" multiple hidden data-entry-photo></label>`;
   hydrate(box);
 }
 
