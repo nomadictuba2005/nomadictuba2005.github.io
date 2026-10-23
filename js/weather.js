@@ -42,6 +42,41 @@ const eyes = (x = 0, y = 0, sleepy = false) => sleepy
 const print = (shape, front, back, dx = 7, dy = 6) =>
   `<g transform="translate(${dx} ${dy})" fill="${back}" style="mix-blend-mode:multiply">${shape}</g><g fill="${front}">${shape}</g>`;
 
+// ---------- Moon ----------
+
+const SYNODIC = 29.530588853;
+const NEW_MOON_REF = Date.UTC(2000, 0, 6, 18, 14); // a known new moon
+
+// Age in days since the last new moon, how much of it is lit (0-1), and whether it's growing.
+function moonPhase(date = new Date()) {
+  const age = (((date - NEW_MOON_REF) / 864e5) % SYNODIC + SYNODIC) % SYNODIC;
+  return { age, lit: (1 - Math.cos(2 * Math.PI * age / SYNODIC)) / 2, waxing: age < SYNODIC / 2 };
+}
+
+const MOON_NAMES = ['New moon', 'Waxing crescent', 'First quarter', 'Waxing gibbous', 'Full moon', 'Waning gibbous', 'Last quarter', 'Waning crescent', 'New moon'];
+const moonName = age => MOON_NAMES[Math.floor((age / SYNODIC) * 8 + 0.5)];
+
+// The sunlit part of the moon as seen from here. Northern skies see a waxing moon lit on the right.
+let south = false;
+const flipMoon = waxing => waxing === south;
+function moonLit(r, { lit, waxing }) {
+  const k = r * Math.abs(1 - 2 * lit);
+  const d = `M0 ${-r}A${r} ${r} 0 0 1 0 ${r}A${k} ${r} 0 0 ${lit > 0.5 ? 1 : 0} 0 ${-r}Z`;
+  return `<g transform="scale(${flipMoon(waxing) ? -1 : 1} 1)"><path d="${d}"/></g>`;
+}
+const moonDisc = (r, phase, dark, dx, dy) =>
+  `<circle r="${r}" fill="${dark}"/>${print(moonLit(r, phase), '#ffe7a3', '#ff8e72', dx, dy)}`;
+
+function nightMoon() {
+  const m = moonPhase();
+  if (m.lit < 0.4) { // too thin for a face, so use the chunky cartoon crescent
+    const flip = m.waxing !== south ? -1 : 1;
+    return `<g transform="scale(${flip} 1)">${print(`<path d="M18-50a52 52 0 1 0 34 72A44 44 0 0 1 18-50z"/>`, '#ffe7a3', '#ff8e72')}${eyes(-10, 4, true)}</g>`;
+  }
+  const side = flipMoon(m.waxing) ? -1 : 1;
+  return moonDisc(52, m, '#8798d8') + eyes(side * 52 * (1 - m.lit), 4, true);
+}
+
 function art(sky, isDay) {
   const sun = `<path d="${BLOB}"/>`;
   const cloud = `<path d="${CLOUD}"/>`;
@@ -49,9 +84,9 @@ function art(sky, isDay) {
     case 'sun':
       return isDay
         ? print(sun, '#ffc93c', '#ff8e72') + eyes(0, -2)
-        : print(`<path d="M18-50a52 52 0 1 0 34 72A44 44 0 0 1 18-50z"/>`, '#ffe7a3', '#ff8e72') + eyes(-10, 4, true);
+        : nightMoon();
     case 'partly':
-      return `<g transform="translate(-28 -34) scale(.8)">${print(isDay ? sun : '<circle r="48"/>', isDay ? '#ffc93c' : '#ffe7a3', '#ff8e72')}</g>
+      return `<g transform="translate(-28 -34) scale(.8)">${isDay ? print(sun, '#ffc93c', '#ff8e72') : moonDisc(48, moonPhase(), '#8798d8')}</g>
         <g transform="translate(16 20)">${print(cloud, '#ffffff', '#f2a99a')}${eyes(4, 14, !isDay)}</g>`;
     case 'rain':
       return `<g transform="translate(0 -18)">${print(cloud, '#ffffff', '#8c9cf5')}${eyes(4, 14)}</g>
@@ -94,7 +129,8 @@ async function fetchWeather(city) {
   const wind = prefs.unit === 'C' ? 'kmh' : 'mph';
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}`
     + '&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,is_day'
-    + '&hourly=temperature_2m,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max'
+    + '&hourly=temperature_2m,weather_code,is_day,cloud_cover'
+    + '&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max,sunrise,sunset,daylight_duration'
     + `&temperature_unit=${unit}&wind_speed_unit=${wind}&timezone=auto&forecast_days=7`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('weather ' + res.status);
@@ -151,7 +187,81 @@ function dayLine(w, from) {
     ${labels}</svg>`;
 }
 
+// Times from Open-Meteo are already local to the city ("2026-10-23T07:21"), so read them as text
+// instead of through Date, which would shift them into the phone's time zone.
+const mins = iso => +iso.slice(11, 13) * 60 + +iso.slice(14, 16);
+const clock = iso => {
+  const h = +iso.slice(11, 13), m = iso.slice(14, 16);
+  return `${h % 12 || 12}${m === '00' ? '' : ':' + m}${h < 12 ? 'am' : 'pm'}`;
+};
+const span = m => { m = Math.round(m); return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${m % 60}m`; };
+
+// Sunrise to sunset as an arc, with the sun where it is right now.
+function sunArc(w) {
+  const rise = w.daily.sunrise[0], set = w.daily.sunset[0], now = w.current.time;
+  const t = (mins(now) - mins(rise)) / (mins(set) - mins(rise));
+  const up = t >= 0 && t <= 1;
+  const x = 160 - 136 * Math.cos(Math.PI * Math.min(Math.max(t, 0), 1));
+  const y = 100 - 80 * Math.sin(Math.PI * Math.min(Math.max(t, 0), 1));
+  let next;
+  if (up) next = `Sunset in ${span(mins(set) - mins(now))}`;
+  else if (t < 0) next = `Sunrise in ${span(mins(rise) - mins(now))}`;
+  else next = w.daily.sunrise[1] ? `Sunrise in ${span(24 * 60 - mins(now) + mins(w.daily.sunrise[1]))}` : '';
+  return `<svg class="wx-arc" viewBox="0 0 320 128" role="img" aria-label="Sunrise ${clock(rise)}, sunset ${clock(set)}">
+    <clipPath id="wx-arc-clip"><rect width="${up ? x : t > 1 ? 320 : 0}" height="100"/></clipPath>
+    <path d="M8 100H312" class="horizon"/>
+    <path d="M24 100A136 80 0 0 1 296 100" class="track"/>
+    <path d="M24 100A136 80 0 0 1 296 100" class="done" clip-path="url(#wx-arc-clip)"/>
+    ${up ? `<circle cx="${x}" cy="${y}" r="10" class="sun"/>` : ''}
+    <text x="160" y="72" class="big">${span(w.daily.daylight_duration[0] / 60)} of daylight</text>
+    <text x="160" y="92" class="sub">${next}</text>
+    <text x="8" y="122" class="end">Sunrise ${clock(rise)}</text>
+    <text x="312" y="122" class="end right">Sunset ${clock(set)}</text>
+  </svg>`;
+}
+
+// How good tonight is for stars: the clouds overnight, and how bright the moon is.
+function stargazing(w, moon) {
+  const now = w.current.time;
+  // Before dawn, look at what's left of the night, unless it's nearly over
+  const [from, to] = mins(now) < mins(w.daily.sunrise[0]) - 120
+    ? [now.slice(0, 13), w.daily.sunrise[0]]
+    : [w.daily.sunset[0].slice(0, 13), w.daily.sunrise[1] || '9999'];
+  const hours = w.hourly.time.map((t, i) => i).filter(i => w.hourly.time[i] >= from && w.hourly.time[i] < to);
+  if (!hours.length) return null;
+  const cloud = hours.map(i => w.hourly.cloud_cover[i]);
+  const avg = cloud.reduce((a, b) => a + b, 0) / cloud.length;
+  const best = hours[cloud.indexOf(Math.min(...cloud))];
+  const bright = moon.lit > 0.6 ? ' The bright moon will hide fainter stars.' : '';
+  if (avg >= 75 && Math.min(...cloud) >= 60) return ['Cloudy tonight', 'Too cloudy to see the stars.'];
+  if (avg <= 25) return bright ? ['Clear tonight', bright.trim()] : ['Great night for stars', 'Clear and dark, with little moonlight.'];
+  return ['Some clouds tonight', `Clearest around ${clock(w.hourly.time[best])}.${bright}`];
+}
+
+function skyView(w) {
+  if (!w.daily.sunrise || !w.hourly.cloud_cover) return ''; // weather cached by an older version
+  const moon = moonPhase();
+  const toNext = moon.waxing ? SYNODIC / 2 - moon.age : SYNODIC - moon.age;
+  const nextDate = new Date(Date.now() + toNext * 864e5).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const name = moonName(moon.age);
+  const nextText = name === 'Full moon' && toNext > SYNODIC / 2 - 1.5
+    ? 'Full tonight.'
+    : `${moon.waxing ? 'Full' : 'New'} moon on ${nextDate}.`;
+  const stars = stargazing(w, moon);
+  const sparkle = '<path d="M0-30C4-8 8-4 30 0 8 4 4 8 0 30-4 8-8 4-30 0-8-4-4-8 0-30z"/>';
+  return sunArc(w) + `
+    <div class="wx-orb">
+      <svg viewBox="-34 -34 72 72" aria-hidden="true">${moonDisc(30, moon, '#d9d4e3', 3, 3)}</svg>
+      <p><b>${name}</b><span>${Math.round(moon.lit * 100)}% lit. ${nextText}</span></p>
+    </div>
+    ${stars ? `<div class="wx-orb">
+      <svg viewBox="-34 -34 72 72" aria-hidden="true">${print(sparkle, '#ffc93c', '#ff8e72', 3, 3)}</svg>
+      <p><b>${stars[0]}</b><span>${stars[1]}</span></p>
+    </div>` : ''}`;
+}
+
 function render(city, w) {
+  south = city.lat < 0;
   const c = w.current;
   const [label, sky] = code(c.weather_code);
   const isDay = !!c.is_day;
@@ -187,6 +297,8 @@ function render(city, w) {
       <span class="lo">${Math.round(min)}°</span><span class="bar"><i style="left:${left}%;width:${Math.max(width, 8)}%"></i></span>
       <span class="hi">${Math.round(max)}°</span></li>`;
   }).join('');
+  $('#wx-sky').innerHTML = skyView(w);
+  $('#wx-sky-title').hidden = !$('#wx-sky').innerHTML;
   $('#wx-unit').textContent = `°${prefs.unit}`;
 }
 
