@@ -146,6 +146,11 @@ body:has(.wx:not([hidden])) { background: var(--paper); }
 .wx-orb p { margin: 0; line-height: 1.35; }
 .wx-orb b { display: block; }
 .wx-orb span { color: var(--ink-2); }
+.wx-sky + h2 { margin-top: 22px; }
+.wx-launches { list-style: none; padding: 0; margin: 0; }
+.wx-launches li { padding: 12px 0; border-top: 1.5px solid var(--line); line-height: 1.35; }
+.wx-launches span { display: block; color: var(--ink-2); }
+.wx-launches em { font-style: normal; font-size: 13px; font-weight: 700; background: var(--butter); border-radius: 999px; padding: 2px 9px; margin-left: 8px; vertical-align: 1px; white-space: nowrap; }
 .wx-foot { font-size: 13px; color: var(--ink-2); margin-top: 20px; }
 
 @media (min-width: 600px) {

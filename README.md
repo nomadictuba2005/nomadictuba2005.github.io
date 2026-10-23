@@ -22,7 +22,7 @@ The app never shows or mentions the notebook on its own. Users would learn the p
 ## Safety and privacy design
 
 - **Encrypted at rest.** All entries and photos are encrypted with AES-256-GCM. The key comes from the user's code (PBKDF2, 250,000 rounds). The code itself is never stored, so even someone who inspects the browser storage sees only scrambled data.
-- **No server, no accounts.** Everything stays on the device. The only network calls are for weather (Open-Meteo) and naming your city.
+- **No server, no accounts.** Everything stays on the device. The only network calls are for weather (Open-Meteo), naming your city, and the ISS orbit and launch schedule, and those last two never include your location.
 - **The code never leaves the device.** Searches are checked against the code locally *before* anything is sent to the weather service.
 - **Invisible from the weather app.** No setup screen, buttons, or text about abuse ever shows unless you type the setup phrase or your code. Esc or switching apps closes even the setup screen.
 - **No traces in the UI.** The notebook's HTML is deleted from the page when you hide it. The tab title and icon never change. Code fields are masked without being password fields, so password managers don't offer to save them.
@@ -56,7 +56,9 @@ fonts/                Bagel Fat One + Atkinson Hyperlegible, with their licenses
 CREDITS.md            outside services, fonts and tools (required by the contest rules)
 css/styles.css        all styles, including the print layout for reports
 js/app.js             wiring: unlock, quick exit, auto-lock, service worker
-js/weather.js         Open-Meteo weather and illustrations
+js/weather.js         Open-Meteo weather, sun and moon, and illustrations
+js/space.js           ISS pass predictions and upcoming rocket launches
+js/vendor/            satellite.js (orbit math), with its license
 js/vault.js           encryption + IndexedDB storage, backup/restore
 js/hub.js             the hidden notebook UI
 js/content.js         hotlines, checklists, warning signs (English + Spanish)
