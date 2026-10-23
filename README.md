@@ -43,7 +43,7 @@ To test on your phone, deploy it (below). Phones need HTTPS.
 
 ## Deploy (free)
 
-**GitHub Pages:** push this folder to a repo → Settings → Pages → deploy from the `main` branch root. (This copy is live at https://nomadictuba2005.github.io/breeze-weather/.)
+**GitHub Pages:** push this folder to a repo → Settings → Pages → deploy from the `main` branch root. (This copy is live at https://nomadictuba2005.github.io/.)
 Netlify or Cloudflare Pages also work: drag and drop the folder.
 
 Then on a phone, open the URL and choose **Add to Home Screen** (iOS Safari: Share → Add to Home Screen).
@@ -74,6 +74,6 @@ No frameworks and no build step: plain HTML, CSS and JavaScript.
 
 - The setup phrase and the private setup link (`#start-notebook`) live in `js/config.js`. Both only work when no notebook exists yet. Change them before publishing if they've been shown publicly (e.g. in your demo video).
 - To add local programs for another area, add an entry to `AREAS` in `js/local.js`.
-- Someone who opens the browser's developer tools could read the app's source code and see what it does (their data stays encrypted). That's why the repo and site use the neutral name `breeze-weather`.
+- Someone who opens the browser's developer tools could read the app's source code and see what it does (their data stays encrypted). That's why nothing in the site's name or address mentions abuse.
 - If you change files, bump `VERSION` in `sw.js` so installed copies update.
 - Hotline numbers are US national services. Double-check them before your demo.
