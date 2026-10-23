@@ -148,7 +148,31 @@ body:has(.wx:not([hidden])) { background: var(--paper); }
 .wx-orb span { color: var(--ink-2); }
 .wx-sky + h2 { margin-top: 22px; }
 .wx-launches { list-style: none; padding: 0; margin: 0; }
-.wx-launches li { padding: 12px 0; border-top: 1.5px solid var(--line); line-height: 1.35; }
+.wx-launches li { display: flex; gap: 14px; align-items: center; padding: 12px 0; border-top: 1.5px solid var(--line); line-height: 1.35; cursor: pointer; }
+.wx-launches p { margin: 0; }
+.wx-launches .rocket { width: 48px; height: 48px; flex: none; overflow: visible; position: relative; z-index: 2; }
+.rocket .flame, .rocket .smoke circle { transform-box: fill-box; opacity: 0; }
+.rocket .flame { transform-origin: 50% 0; }
+.rocket .smoke circle { fill: var(--field); transform-origin: center; }
+.rocket.soon .flame { opacity: 1; animation: flicker .16s ease-in-out infinite alternate; }
+.rocket.soon .ship { animation: rumble .5s ease-in-out infinite; }
+.rocket.go .flame { opacity: 1; animation: flicker .1s ease-in-out infinite alternate; }
+.rocket.go .ship { animation: liftoff 1.5s cubic-bezier(.55, 0, .75, .4) forwards; }
+.rocket.go .smoke circle { animation: puff 1s ease-out forwards; }
+.rocket.back .ship { animation: land .5s ease-out; }
+@keyframes flicker { from { transform: scaleY(1); } to { transform: scaleY(.65) scaleX(.85); } }
+@keyframes rumble { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-.6px); } 75% { transform: translateX(.6px); } }
+@keyframes liftoff {
+  0% { transform: translate(0, 0); }
+  6% { transform: translate(-1px, 1px); } 12% { transform: translate(1px, 0); } 18% { transform: translate(-1px, 0); }
+  80% { opacity: 1; }
+  100% { transform: translate(0, -260px); opacity: 0; }
+}
+@keyframes puff { 0% { opacity: 0; transform: scale(.2); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(2) translateY(4px); } }
+@keyframes land { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .rocket .ship, .rocket .flame, .rocket .smoke circle { animation: none !important; }
+}
 .wx-launches span { display: block; color: var(--ink-2); }
 .wx-launches em { font-style: normal; font-size: 13px; font-weight: 700; background: var(--butter); border-radius: 999px; padding: 2px 9px; margin-left: 8px; vertical-align: 1px; white-space: nowrap; }
 .wx-foot { font-size: 13px; color: var(--ink-2); margin-top: 20px; }

@@ -265,12 +265,17 @@ function skyView(w) {
 
 // ---------- ISS and launches ----------
 
-// Times in the city's own time zone, to match the rest of the forecast
+// ISS passes use the city's time zone (you'd be standing there to see one), and say which zone
+// if it isn't the phone's. Launches use the phone's own time (tz undefined).
+const PHONE_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const at = (t, tz, opts) => new Date(t).toLocaleString('en-US', { timeZone: tz, ...opts });
+const zone = (t, tz) => new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' })
+  .formatToParts(new Date(t)).find(p => p.type === 'timeZoneName').value;
 const dayKey = (t, tz) => at(t, tz, { year: 'numeric', month: 'numeric', day: 'numeric' });
 function when(t, tz) {
   t = new Date(t).getTime();
-  const time = at(t, tz, { hour: 'numeric', minute: '2-digit' }).replace(/\s/g, '').replace(':00', '').toLowerCase();
+  let time = at(t, tz, { hour: 'numeric', minute: '2-digit' }).replace(/\s/g, '').replace(':00', '').toLowerCase();
+  if (tz && tz !== PHONE_TZ) time += ` ${zone(t, tz)}`;
   const evening = +at(t, tz, { hour: 'numeric', hourCycle: 'h23' }) >= 17;
   if (dayKey(t, tz) === dayKey(Date.now(), tz)) return `${evening ? 'Tonight' : 'Today'} at ${time}`;
   if (dayKey(t, tz) === dayKey(Date.now() + 864e5, tz)) return `Tomorrow at ${time}`;
@@ -293,15 +298,48 @@ function issView(passes, tz) {
     <span>${p.from === p.to ? `In the ${p.from}` : `From ${p.from} to ${p.to}`}, ${height}. Visible for ${length} minute${length === 1 ? '' : 's'}.</span></p></div>`;
 }
 
-function launchView(launches, tz) {
+// A little rocket for each launch. Ones launching within a day sit on the pad with the engine lit.
+const ROCKET = `<g class="smoke">${[-11, 0, 11].map((x, i) => `<circle cx="${x}" cy="27" r="7" style="animation-delay:${i * 0.06}s"/>`).join('')}</g>
+  <g class="ship">
+    <g class="flame">${print('<path d="M-7 15h14q-1 10-7 18q-6-8-7-18z"/>', '#ffc93c', '#ff8e72', 2, 2)}</g>
+    ${print('<path d="M-12 3l-9 13v7l9-5zM12 3l9 13v7l-9-5z"/>', '#ff8e72', '#d9472f', 2, 2)}
+    ${print('<path d="M0-30c9 8 12 20 12 34v11h-24V4c0-14 3-26 12-34z"/>', '#c3ceff', '#7d74c9', 3, 3)}
+    <circle cy="-8" r="5" fill="#ffe7a3" stroke="${INK}" stroke-width="2.5"/>
+  </g>`;
+
+function launchView(launches) {
   if (!launches?.length) return '';
   return `<ul class="wx-launches">${launches.map(l => {
     const exact = ['SEC', 'MIN', 'HR'].includes(l.precision);
-    const time = exact ? when(l.net, tz) : `Around ${at(l.net, tz, { month: 'short', day: 'numeric' })}`;
-    return `<li><b>${l.mission || l.rocket || 'Mission not announced'}</b>${l.near ? '<em>Near you</em>' : ''}
-      <span>${l.mission && l.rocket ? `${l.rocket} from ` : 'From '}${l.place}</span><span>${time}</span></li>`;
+    const time = exact ? when(l.net) : `Around ${at(l.net, undefined, { month: 'short', day: 'numeric' })}`;
+    const soon = Date.parse(l.net) - Date.now() < 864e5;
+    return `<li>
+      <svg class="rocket${soon ? ' soon' : ''}" viewBox="-34 -34 72 72" aria-hidden="true">${ROCKET}</svg>
+      <p><b>${l.mission || l.rocket || 'Mission not announced'}</b>${l.near ? '<em>Near you</em>' : ''}
+      <span>${l.mission && l.rocket ? `${l.rocket} from ` : 'From '}${l.place}</span><span>${time}</span></p></li>`;
   }).join('')}</ul>`;
 }
+
+// Tap a launch to send its rocket up. It comes back to the pad afterwards.
+function liftoff(svg) {
+  if (!svg || svg.classList.contains('go') || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  svg.classList.remove('back');
+  svg.classList.add('go');
+  svg.querySelector('.ship').addEventListener('animationend', () => {
+    svg.classList.remove('go');
+    svg.classList.add('back');
+  }, { once: true });
+}
+
+// The next launch lifts off once, the first time you scroll down to it
+let launchedOnScroll = false;
+const scrollWatch = 'IntersectionObserver' in window && new IntersectionObserver(entries => {
+  const e = entries.find(x => x.isIntersecting);
+  if (!e || launchedOnScroll) return;
+  launchedOnScroll = true;
+  scrollWatch.disconnect();
+  setTimeout(() => liftoff(e.target), 400);
+}, { threshold: 1 });
 
 // Each part shows up as soon as its data arrives
 let spaceRun = 0;
@@ -312,9 +350,11 @@ function renderSpace(city, tz) {
     if (run !== spaceRun) return;
     $('#wx-space').innerHTML = parts.iss + parts.launches;
     $('#wx-space-title').hidden = !$('#wx-space').innerHTML;
+    const first = $('#wx-space .rocket');
+    if (first && scrollWatch && !launchedOnScroll) { scrollWatch.disconnect(); scrollWatch.observe(first); }
   };
   issPasses(city.lat, city.lon).then(p => { parts.iss = issView(p, tz); show(); }, () => {});
-  upcomingLaunches(city.lat, city.lon).then(l => { parts.launches = launchView(l, tz); show(); }, () => {});
+  upcomingLaunches(city.lat, city.lon).then(l => { parts.launches = launchView(l); show(); }, () => {});
 }
 
 function render(city, w) {
@@ -438,6 +478,7 @@ export function initWeather({ onQuery }) {
   });
 
   $('#wx-locate').addEventListener('click', locate);
+  $('#wx-space').addEventListener('click', e => liftoff(e.target.closest('.wx-launches li')?.querySelector('.rocket')));
   $('#wx-unit').addEventListener('click', () => {
     prefs.unit = prefs.unit === 'F' ? 'C' : 'F';
     load(prefs.city || DEFAULT_CITY);
