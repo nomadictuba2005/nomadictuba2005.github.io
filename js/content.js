@@ -165,6 +165,13 @@ const PERSON_FIELDS = [
   ['notes', { en: 'Anything else', es: 'Algo más' }, '', 'area'],
 ];
 
+// How the Abuser page groups those fields
+const PERSON_GROUPS = [
+  [{ en: 'Who they are', es: 'Quién es' }, ['name', 'aka', 'relation', 'dob', 'looks']],
+  [{ en: 'Where they can be found', es: 'Dónde se le puede encontrar' }, ['phones', 'address', 'work', 'vehicle', 'social']],
+  [{ en: 'Your safety', es: 'Tu seguridad' }, ['weapons', 'others', 'notes']],
+];
+
 // Entries saved before types had ids stored the English label; map those back.
 const LEGACY_TYPES = {
   'Physical': 'physical', 'Verbal / emotional': 'verbal', 'Threats': 'threats', 'Sexual': 'sexual',
@@ -188,5 +195,6 @@ export function content() {
     PLAN_NOTES: PLAN_NOTES.map(([k, label, ph]) => [k, L(label), L(ph)]),
     WARNING_SIGNS: WARNING_SIGNS.map(L),
     PERSON_FIELDS: PERSON_FIELDS.map(([k, label, ph = '', type]) => [k, L(label), L(ph), type]),
+    PERSON_GROUPS: PERSON_GROUPS.map(([title, keys]) => [L(title), keys]),
   };
 }
