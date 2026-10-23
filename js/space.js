@@ -13,7 +13,7 @@ const get = url => fetch(url, { signal: AbortSignal.timeout(8000) });
 // Saved copies keep us under the APIs' rate limits, and an old copy beats nothing when offline.
 // Calls that arrive while a request is already out share it.
 const inFlight = {};
-function cached(key, maxAge, fetcher) {
+function cached(key, maxAge, fetcher, fallback = () => null) {
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(key)); } catch {}
   if (saved && Date.now() - saved.at < maxAge) return Promise.resolve(saved.data);
@@ -22,13 +22,18 @@ function cached(key, maxAge, fetcher) {
       try { localStorage.setItem(key, JSON.stringify({ at: Date.now(), data })); } catch {}
       return data;
     })
-    .catch(() => saved?.data ?? null)
+    .catch(async () => {
+      const data = (await fallback()) ?? saved?.data ?? null;
+      // Don't ask again for an hour: retrying while rate-limited just keeps the limit hit
+      if (data) try { localStorage.setItem(key, JSON.stringify({ at: Date.now() - maxAge + 36e5, data })); } catch {}
+      return data;
+    })
     .finally(() => delete inFlight[key]);
 }
 
 // Our own copy of the orbit and launch schedule, refreshed every 2 hours by a GitHub Action
-// (.github/scripts/space-data.mjs). Reading it means phones never hit the APIs' rate limits.
-// The APIs below are only a backup for when it's missing or stale.
+// (.github/scripts/space-data.mjs). The ISS orbit comes from here first; for launches it's the
+// backup when Launch Library is rate-limited or unreachable.
 let feed;
 const getFeed = () => feed ||= get('data/space.json').then(r => r.ok ? r.json() : null).catch(() => null);
 const fresh = (at, hours) => at && Date.now() - Date.parse(at) < hours * 36e5;
@@ -107,11 +112,8 @@ export async function issPasses(lat, lon) {
 
 // ---------- Rocket launches ----------
 
-async function getLaunches() {
-  const f = await getFeed();
-  return fresh(f?.launchesAt, 6) ? f.launches : launchesFromApi();
-}
-const launchesFromApi = () => cached(LAUNCH_KEY, 2 * 36e5, async () => {
+// Launch Library directly, at most once every 6 hours per phone (its free limit is 15 calls an hour)
+const getLaunches = () => cached(LAUNCH_KEY, 6 * 36e5, async () => {
   const res = await get('https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=12&mode=normal&hide_recent_previous=true');
   if (!res.ok) throw new Error('launches ' + res.status);
   return (await res.json()).results.map(r => {
@@ -122,7 +124,7 @@ const launchesFromApi = () => cached(LAUNCH_KEY, 2 * 36e5, async () => {
       lat: +r.pad?.latitude, lon: +r.pad?.longitude,
     };
   });
-});
+}, async () => (await getFeed())?.launches);
 
 const miles = (lat1, lon1, lat2, lon2) => {
   const r = Math.PI / 180;

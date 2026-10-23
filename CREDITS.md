@@ -18,7 +18,7 @@ The Congressional App Challenge rules ask entrants to document every outside lib
 | [The Space Devs Launch Library 2](https://thespacedevs.com/llapi) | Upcoming rocket launches | Free tier, no API key. Credited in the app ("Launches from The Space Devs"). |
 | [RocketLaunch.Live](https://www.rocketlaunch.live/) next-5-launches feed | Backup launch source when Launch Library is rate-limited | Free, no API key |
 
-A GitHub Action (`.github/workflows/pages.yml`) fetches the ISS orbit and launch schedule every 2 hours and publishes them on the site as `data/space.json`, so phones read one small file instead of calling these services and can't run into their rate limits. The app only calls them directly if that file is missing or out of date.
+Each phone asks Launch Library for launches at most once every 6 hours and keeps the result on the phone (its free limit is 15 calls an hour). A GitHub Action (`.github/workflows/pages.yml`) also fetches the ISS orbit and launch schedule every 2 hours and publishes them on the site as `data/space.json`. Phones read the ISS orbit from that file, and use its launch list whenever Launch Library is rate-limited or unreachable.
 
 No notebook data is ever sent to these services. Open-Meteo and BigDataCloud only receive a city name or coordinates when the weather screen asks for them. The ISS and launch services receive no location at all; passes and "near you" launches are worked out on the phone.
 
