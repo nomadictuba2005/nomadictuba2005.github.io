@@ -1,5 +1,6 @@
 // Ties the weather app and the hidden notebook together, and handles locking.
-import { initWeather } from './weather.js';
+// The notebook never depends on the weather: weather.js is loaded separately, and the search box
+// (where the code is typed) is handled here, so the notebook opens even if the weather is broken.
 import * as V from './vault.js';
 import { mountHub, unmountHub, autoLockSuspended, autoLockMinutes } from './hub.js';
 import { showSetup, hideSetup } from './setup.js';
@@ -26,19 +27,36 @@ async function exitHub() {
   V.lock();
 }
 
-initWeather({
-  // Every search goes through here first. The secret code never leaves the device.
-  async onQuery(q) {
-    if (q.toLowerCase() === SETUP_PHRASE.toLowerCase() && !(await V.exists())) {
-      showSetup({ onReady: openHub });
-      return true;
-    }
-    if (await V.unlock(q)) {
-      openHub();
-      return true;
-    }
-    return false;
-  },
+const weather = import('./weather.js')
+  .then(m => { m.initWeather(); return m; })
+  .catch(() => null);
+
+// Every search goes through here first. The secret code never leaves the device;
+// only text that isn't the code or setup phrase is passed on as a city search.
+async function isSecret(q) {
+  if (q.toLowerCase() === SETUP_PHRASE.toLowerCase() && !(await V.exists())) {
+    showSetup({ onReady: openHub });
+    return true;
+  }
+  if (await V.unlock(q)) {
+    openHub();
+    return true;
+  }
+  return false;
+}
+
+const searchInput = document.getElementById('wx-q');
+document.getElementById('wx-search').addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = searchInput.value.trim();
+  searchInput.blur();
+  if (!q) return;
+  if (await isSecret(q)) {
+    searchInput.value = '';
+    document.getElementById('wx-results').hidden = true;
+    return;
+  }
+  (await weather)?.search(q);
 });
 
 // Private setup link (see config.js). Clean the address bar first so the
