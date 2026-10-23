@@ -286,6 +286,13 @@ function journalView() {
 
 function personView() {
   const p = data().person;
+  const { PERSON_FIELDS, PERSON_GROUPS } = content();
+  const field = ([k, label, ph, type]) => `
+        <label>${label}
+          ${type === 'area'
+            ? `<textarea rows="2" data-person="${k}" placeholder="${ph}">${esc(p[k])}</textarea>`
+            : `<input type="${type || 'text'}" data-person="${k}" placeholder="${ph}" value="${esc(p[k])}">`}
+        </label>`;
   return `
     ${intro(t('person.title'), t('person.lede'))}
     <div class="person-photo">
@@ -295,14 +302,9 @@ function personView() {
         ${p.photo ? `<button class="btn link" data-act="person-photo-remove">${t('remove')}</button>` : ''}
       </div>
     </div>
-    <div class="form">
-      ${content().PERSON_FIELDS.map(([k, label, ph, type]) => `
-        <label>${label}
-          ${type === 'area'
-            ? `<textarea rows="2" data-person="${k}" placeholder="${ph}">${esc(p[k])}</textarea>`
-            : `<input type="${type || 'text'}" data-person="${k}" placeholder="${ph}" value="${esc(p[k])}">`}
-        </label>`).join('')}
-    </div>`;
+    ${PERSON_GROUPS.map(([title, keys]) => `
+      <h2 class="section">${title}</h2>
+      <div class="form">${PERSON_FIELDS.filter(f => keys.includes(f[0])).map(field).join('')}</div>`).join('')}`;
 }
 
 function planView() {

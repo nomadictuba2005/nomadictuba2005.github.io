@@ -279,7 +279,7 @@ input[type=checkbox]:checked {
 .tl-text { font-size: 16px; }
 .tl-meta { font-size: 14px; color: var(--ink-2); }
 .tl:hover .tl-text { text-decoration: underline; text-decoration-color: var(--field); text-underline-offset: 3px; }
-.empty { color: var(--ink-2); padding: 28px 0; }
+.empty { color: var(--ink-2); margin: 28px 0 0; padding: 22px 20px; border: 2px dashed var(--line); border-radius: 14px; max-width: 34em; }
 
 .person-photo { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
 .person-photo img, .person-photo .ph { width: 92px; height: 92px; border-radius: 12px; object-fit: cover; flex: none; background: var(--wash); display: grid; place-items: center; font-size: 13px; color: var(--ink-2); }
