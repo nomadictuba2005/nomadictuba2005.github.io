@@ -1,5 +1,7 @@
 // The disguise: a real, working weather app powered by Open-Meteo (free, no API key).
 
+import { issPasses, upcomingLaunches } from './space.js';
+
 const PREFS_KEY = 'breeze.prefs';
 const CACHE_KEY = 'breeze.lastWeather';
 const DEFAULT_CITY = { name: 'Washington, D.C.', lat: 38.8951, lon: -77.0364 };
@@ -260,6 +262,58 @@ function skyView(w) {
     </div>` : ''}`;
 }
 
+// ---------- ISS and launches ----------
+
+// Times in the city's own time zone, to match the rest of the forecast
+const at = (t, tz, opts) => new Date(t).toLocaleString('en-US', { timeZone: tz, ...opts });
+const dayKey = (t, tz) => at(t, tz, { year: 'numeric', month: 'numeric', day: 'numeric' });
+function when(t, tz) {
+  const time = at(t, tz, { hour: 'numeric', minute: '2-digit' }).replace(/\s/g, '').replace(':00', '').toLowerCase();
+  const evening = +at(t, tz, { hour: 'numeric', hourCycle: 'h23' }) >= 17;
+  if (dayKey(t, tz) === dayKey(Date.now(), tz)) return `${evening ? 'Tonight' : 'Today'} at ${time}`;
+  if (dayKey(t, tz) === dayKey(Date.now() + 864e5, tz)) return `Tomorrow at ${time}`;
+  return `${at(t, tz, { weekday: 'long' })} at ${time}`;
+}
+
+const ISS_ART = print('<rect x="-34" y="-13" width="22" height="26" rx="3"/><rect x="12" y="-13" width="22" height="26" rx="3"/><rect x="-14" y="-6" width="28" height="12" rx="5"/>', '#8c9cf5', '#ffc93c', 3, 3);
+
+function issView(passes, tz) {
+  if (!passes) return '';
+  const art = `<svg viewBox="-34 -34 72 72" aria-hidden="true">${ISS_ART}</svg>`;
+  if (!passes.length) return `<div class="wx-orb">${art}<p><b>Space station</b><span>It won't be visible from here this week.</span></p></div>`;
+  const p = passes[0];
+  const height = p.maxEl >= 60 ? 'almost overhead' : p.maxEl >= 30 ? 'high in the sky' : 'low in the sky';
+  const now = p.start <= Date.now();
+  const length = Math.max(1, Math.round((p.end - p.start) / 60e3));
+  return `<div class="wx-orb">${art}<p>
+    <b>${now ? 'Space station overhead now' : `Space station ${when(p.start, tz).replace(/^(Tonight|Today|Tomorrow)/, w => w.toLowerCase())}`}</b>
+    <span>${p.from === p.to ? `In the ${p.from}` : `From ${p.from} to ${p.to}`}, ${height}. Visible for ${length} minute${length === 1 ? '' : 's'}.</span></p></div>`;
+}
+
+function launchView(launches, tz) {
+  if (!launches?.length) return '';
+  return `<ul class="wx-launches">${launches.map(l => {
+    const exact = ['SEC', 'MIN', 'HR'].includes(l.precision);
+    const time = exact ? when(l.net, tz) : `Around ${at(l.net, tz, { month: 'short', day: 'numeric' })}`;
+    return `<li><b>${l.mission || l.rocket}</b>${l.near ? '<em>Near you</em>' : ''}
+      <span>${l.mission ? `${l.rocket} from ` : 'From '}${l.place}</span><span>${time}</span></li>`;
+  }).join('')}</ul>`;
+}
+
+// Each part shows up as soon as its data arrives
+let spaceRun = 0;
+function renderSpace(city, tz) {
+  const run = ++spaceRun;
+  const parts = { iss: '', launches: '' };
+  const show = () => {
+    if (run !== spaceRun) return;
+    $('#wx-space').innerHTML = parts.iss + parts.launches;
+    $('#wx-space-title').hidden = !$('#wx-space').innerHTML;
+  };
+  issPasses(city.lat, city.lon).then(p => { parts.iss = issView(p, tz); show(); }, () => {});
+  upcomingLaunches(city.lat, city.lon).then(l => { parts.launches = launchView(l, tz); show(); }, () => {});
+}
+
 function render(city, w) {
   south = city.lat < 0;
   const c = w.current;
@@ -299,6 +353,7 @@ function render(city, w) {
   }).join('');
   $('#wx-sky').innerHTML = skyView(w);
   $('#wx-sky-title').hidden = !$('#wx-sky').innerHTML;
+  renderSpace(city, w.timezone);
   $('#wx-unit').textContent = `°${prefs.unit}`;
 }
 

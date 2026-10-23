@@ -1,6 +1,12 @@
 # Credits
 
-The Congressional App Challenge rules ask entrants to document every outside library, framework and tool. Breeze has no code libraries or frameworks; it's plain HTML, CSS and JavaScript. It does use the outside resources below.
+The Congressional App Challenge rules ask entrants to document every outside library, framework and tool. Breeze has no frameworks; it's plain HTML, CSS and JavaScript with one small library, listed below, plus the outside resources after it.
+
+## Code library (bundled in `js/vendor/`)
+
+| Library | Used for | License |
+| --- | --- | --- |
+| [satellite.js](https://github.com/shashwatak/satellite-js) 7.1.0 | Working out when the ISS passes overhead, on the phone | MIT (`js/vendor/LICENSE-satellite.js.md`). Only the functions Breeze uses were bundled into one file with esbuild. |
 
 ## Services the app calls while running
 
@@ -8,8 +14,10 @@ The Congressional App Challenge rules ask entrants to document every outside lib
 | --- | --- | --- |
 | [Open-Meteo](https://open-meteo.com/) forecast API and geocoding API | Weather data and city search | Free for non-commercial use, no API key. Data is CC BY 4.0, credited in the app ("Forecast from Open-Meteo"). |
 | [BigDataCloud](https://www.bigdatacloud.com/) reverse geocoding (client-side, free tier) | Turning the phone's location into a city name | Free client-side API |
+| [CelesTrak](https://celestrak.org/) and [wheretheiss.at](https://wheretheiss.at/) | The ISS's current orbit (TLE), refreshed every 12 hours | Free public data, no API key |
+| [The Space Devs Launch Library 2](https://thespacedevs.com/llapi) | Upcoming rocket launches, refreshed every 2 hours | Free tier, no API key. Credited in the app ("Launches from The Space Devs"). |
 
-No notebook data is ever sent to these services. They only receive a city name or the phone's coordinates when the weather screen asks for them.
+No notebook data is ever sent to these services. Open-Meteo and BigDataCloud only receive a city name or coordinates when the weather screen asks for them. The ISS and launch services receive no location at all; passes and "near you" launches are worked out on the phone.
 
 ## Fonts (bundled in `fonts/`)
 
@@ -35,4 +43,6 @@ Both were downloaded from Google Fonts.
 
 - Google Chrome and Playwright: automated testing and screenshots
 - ImageMagick: resizing the app icons
+- esbuild: bundling the satellite.js functions into one file
+- Skyfield (Python): checking the app's ISS pass times against an independent calculation
 
