@@ -130,6 +130,22 @@ body:has(.wx:not([hidden])) { background: var(--paper); }
 .wx-daily .hi { font-weight: 700; }
 .wx-daily .bar { position: relative; height: 8px; border-radius: 4px; background: var(--wash); }
 .wx-daily .bar i { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: var(--accent); }
+.wx-daily + h2 { margin-top: 22px; }
+.wx-arc { display: block; width: 100%; height: auto; margin: 4px auto 6px; overflow: visible; }
+.wx-arc .horizon { stroke: var(--line); stroke-width: 1.5; }
+.wx-arc .track { fill: none; stroke: var(--field); stroke-width: 3; stroke-dasharray: 1 8; stroke-linecap: round; }
+.wx-arc .done { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
+.wx-arc .sun { fill: #ffc93c; stroke: var(--ink); stroke-width: 2.5; }
+.wx-arc text { font-family: var(--text); fill: var(--ink); text-anchor: middle; }
+.wx-arc .big { font-size: 16px; font-weight: 700; }
+.wx-arc .sub { font-size: 13px; fill: var(--ink-2); }
+.wx-arc .end { font-size: 13px; fill: var(--ink-2); text-anchor: start; }
+.wx-arc .end.right { text-anchor: end; }
+.wx-orb { display: flex; gap: 14px; align-items: center; padding: 12px 0; border-top: 1.5px solid var(--line); }
+.wx-orb svg { width: 48px; height: 48px; flex: none; overflow: visible; }
+.wx-orb p { margin: 0; line-height: 1.35; }
+.wx-orb b { display: block; }
+.wx-orb span { color: var(--ink-2); }
 .wx-foot { font-size: 13px; color: var(--ink-2); margin-top: 20px; }
 
 @media (min-width: 600px) {
