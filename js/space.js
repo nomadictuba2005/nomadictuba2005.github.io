@@ -26,10 +26,21 @@ function cached(key, maxAge, fetcher) {
     .finally(() => delete inFlight[key]);
 }
 
+// Our own copy of the orbit and launch schedule, refreshed every 2 hours by a GitHub Action
+// (.github/scripts/space-data.mjs). Reading it means phones never hit the APIs' rate limits.
+// The APIs below are only a backup for when it's missing or stale.
+let feed;
+const getFeed = () => feed ||= get('data/space.json').then(r => r.ok ? r.json() : null).catch(() => null);
+const fresh = (at, hours) => at && Date.now() - Date.parse(at) < hours * 36e5;
+
 // ---------- ISS ----------
 
 // The ISS's orbit as two lines of numbers (a "TLE"). Asks two sources and uses whichever answers first.
-const getOrbit = () => cached(TLE_KEY, 12 * 36e5, () => Promise.any([
+async function getOrbit() {
+  const f = await getFeed();
+  return fresh(f?.tleAt, 48) ? f.tle : orbitFromApis();
+}
+const orbitFromApis = () => cached(TLE_KEY, 12 * 36e5, () => Promise.any([
   get('https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=tle').then(async res => {
     const lines = (await res.text()).trim().split('\n').map(s => s.trim());
     if (!res.ok || !lines[1]?.startsWith('1 ') || !lines[2]?.startsWith('2 ')) throw new Error('celestrak');
@@ -46,7 +57,7 @@ const compass = az => COMPASS[Math.round(az * DEG / 45) % 8];
 
 // Steps through the next few days looking for times the ISS is visible: at least 10° up,
 // lit by the sun, while the sky where you are is dark.
-function findPasses(orbit, lat, lon, days = 7, want = 6) {
+function findPasses(orbit, lat, lon, days = 10, want = 6) {
   const sat = twoline2satrec(orbit[0], orbit[1]);
   const here = { latitude: degreesToRadians(lat), longitude: degreesToRadians(lon), height: 0 };
   const passes = [];
@@ -88,7 +99,7 @@ export async function issPasses(lat, lon) {
   if (memo?.key === key && Date.now() - memo.at < 10 * 60e3) return memo.passes;
   const all = findPasses(orbit, lat, lon);
   // Skip quick, low glimpses if a proper pass is coming soon after
-  const good = all.find(p => p.maxEl >= 25 && p.end - p.start >= 2 * 60e3);
+  const good = all.find(p => p.maxEl >= 15 && p.end - p.start >= 2 * 60e3);
   const passes = good && good.start - (all[0]?.start ?? 0) < 2 * 864e5 ? [good] : all.slice(0, 1);
   memo = { key, at: Date.now(), passes };
   return passes;
@@ -96,7 +107,11 @@ export async function issPasses(lat, lon) {
 
 // ---------- Rocket launches ----------
 
-const getLaunches = () => cached(LAUNCH_KEY, 2 * 36e5, async () => {
+async function getLaunches() {
+  const f = await getFeed();
+  return fresh(f?.launchesAt, 6) ? f.launches : launchesFromApi();
+}
+const launchesFromApi = () => cached(LAUNCH_KEY, 2 * 36e5, async () => {
   const res = await get('https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=12&mode=normal&hide_recent_previous=true');
   if (!res.ok) throw new Error('launches ' + res.status);
   return (await res.json()).results.map(r => {

@@ -58,6 +58,9 @@ css/styles.css        all styles, including the print layout for reports
 js/app.js             wiring: unlock, quick exit, auto-lock, service worker
 js/weather.js         Open-Meteo weather, sun and moon, and illustrations
 js/space.js           ISS pass predictions and upcoming rocket launches
+js/places.js          typo-tolerant city suggestions, matched on the phone
+data/places.tsv       bundled city list (GeoNames)
+.github/              deploy workflow; refreshes data/space.json every 2 hours
 js/vendor/            satellite.js (orbit math), with its license
 js/vault.js           encryption + IndexedDB storage, backup/restore
 js/hub.js             the hidden notebook UI

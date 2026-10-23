@@ -1,6 +1,7 @@
 // The disguise: a real, working weather app powered by Open-Meteo (free, no API key).
 
 import { issPasses, upcomingLaunches } from './space.js';
+import { loadPlaces, suggest } from './places.js';
 
 const PREFS_KEY = 'breeze.prefs';
 const CACHE_KEY = 'breeze.lastWeather';
@@ -268,11 +269,13 @@ function skyView(w) {
 const at = (t, tz, opts) => new Date(t).toLocaleString('en-US', { timeZone: tz, ...opts });
 const dayKey = (t, tz) => at(t, tz, { year: 'numeric', month: 'numeric', day: 'numeric' });
 function when(t, tz) {
+  t = new Date(t).getTime();
   const time = at(t, tz, { hour: 'numeric', minute: '2-digit' }).replace(/\s/g, '').replace(':00', '').toLowerCase();
   const evening = +at(t, tz, { hour: 'numeric', hourCycle: 'h23' }) >= 17;
   if (dayKey(t, tz) === dayKey(Date.now(), tz)) return `${evening ? 'Tonight' : 'Today'} at ${time}`;
   if (dayKey(t, tz) === dayKey(Date.now() + 864e5, tz)) return `Tomorrow at ${time}`;
-  return `${at(t, tz, { weekday: 'long' })} at ${time}`;
+  if (t - Date.now() < 6 * 864e5) return `${at(t, tz, { weekday: 'long' })} at ${time}`;
+  return `${at(t, tz, { weekday: 'short', month: 'short', day: 'numeric' })} at ${time}`;
 }
 
 const ISS_ART = print('<rect x="-34" y="-13" width="22" height="26" rx="3"/><rect x="12" y="-13" width="22" height="26" rx="3"/><rect x="-14" y="-6" width="28" height="12" rx="5"/>', '#8c9cf5', '#ffc93c', 3, 3);
@@ -280,7 +283,7 @@ const ISS_ART = print('<rect x="-34" y="-13" width="22" height="26" rx="3"/><rec
 function issView(passes, tz) {
   if (!passes) return '';
   const art = `<svg viewBox="-34 -34 72 72" aria-hidden="true">${ISS_ART}</svg>`;
-  if (!passes.length) return `<div class="wx-orb">${art}<p><b>Space station</b><span>It won't be visible from here this week.</span></p></div>`;
+  if (!passes.length) return `<div class="wx-orb">${art}<p><b>Space station</b><span>Not visible from here in the next 10 days.</span></p></div>`;
   const p = passes[0];
   const height = p.maxEl >= 60 ? 'almost overhead' : p.maxEl >= 30 ? 'high in the sky' : 'low in the sky';
   const now = p.start <= Date.now();
@@ -295,8 +298,8 @@ function launchView(launches, tz) {
   return `<ul class="wx-launches">${launches.map(l => {
     const exact = ['SEC', 'MIN', 'HR'].includes(l.precision);
     const time = exact ? when(l.net, tz) : `Around ${at(l.net, tz, { month: 'short', day: 'numeric' })}`;
-    return `<li><b>${l.mission || l.rocket}</b>${l.near ? '<em>Near you</em>' : ''}
-      <span>${l.mission ? `${l.rocket} from ` : 'From '}${l.place}</span><span>${time}</span></li>`;
+    return `<li><b>${l.mission || l.rocket || 'Mission not announced'}</b>${l.near ? '<em>Near you</em>' : ''}
+      <span>${l.mission && l.rocket ? `${l.rocket} from ` : 'From '}${l.place}</span><span>${time}</span></li>`;
   }).join('')}</ul>`;
 }
 
@@ -413,9 +416,26 @@ export function initWeather({ onQuery }) {
       $('#wx-results').hidden = true;
       return;
     }
-    showResults(await geocode(q));
+    // Our own suggestions first (they forgive typos), then anything else Open-Meteo knows
+    const local = suggest(q);
+    const remote = (await geocode(q)).filter(r => !local.some(l =>
+      Math.abs(l.lat - r.lat) < 0.15 && Math.abs(l.lon - r.lon) < 0.15 && l.name.split(',')[0] === r.name.split(',')[0]));
+    showResults([...local, ...remote].slice(0, 6));
   });
-  input.addEventListener('input', () => { if (!input.value) $('#wx-results').hidden = true; });
+
+  // Suggestions while typing come from the bundled place list, so nothing typed here
+  // (including the secret code) goes over the network before Enter is pressed.
+  let typing;
+  input.addEventListener('focus', loadPlaces, { once: true });
+  input.addEventListener('input', () => {
+    clearTimeout(typing);
+    typing = setTimeout(async () => {
+      if (!input.value.trim()) { $('#wx-results').hidden = true; return; }
+      await loadPlaces();
+      const list = suggest(input.value);
+      if (list.length) showResults(list); else $('#wx-results').hidden = true;
+    }, 80);
+  });
 
   $('#wx-locate').addEventListener('click', locate);
   $('#wx-unit').addEventListener('click', () => {

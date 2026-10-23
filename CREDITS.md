@@ -14,10 +14,19 @@ The Congressional App Challenge rules ask entrants to document every outside lib
 | --- | --- | --- |
 | [Open-Meteo](https://open-meteo.com/) forecast API and geocoding API | Weather data and city search | Free for non-commercial use, no API key. Data is CC BY 4.0, credited in the app ("Forecast from Open-Meteo"). |
 | [BigDataCloud](https://www.bigdatacloud.com/) reverse geocoding (client-side, free tier) | Turning the phone's location into a city name | Free client-side API |
-| [CelesTrak](https://celestrak.org/) and [wheretheiss.at](https://wheretheiss.at/) | The ISS's current orbit (TLE), refreshed every 12 hours | Free public data, no API key |
-| [The Space Devs Launch Library 2](https://thespacedevs.com/llapi) | Upcoming rocket launches, refreshed every 2 hours | Free tier, no API key. Credited in the app ("Launches from The Space Devs"). |
+| [CelesTrak](https://celestrak.org/) and [wheretheiss.at](https://wheretheiss.at/) | The ISS's current orbit (TLE) | Free public data, no API key |
+| [The Space Devs Launch Library 2](https://thespacedevs.com/llapi) | Upcoming rocket launches | Free tier, no API key. Credited in the app ("Launches from The Space Devs"). |
+| [RocketLaunch.Live](https://www.rocketlaunch.live/) next-5-launches feed | Backup launch source when Launch Library is rate-limited | Free, no API key |
+
+A GitHub Action (`.github/workflows/pages.yml`) fetches the ISS orbit and launch schedule every 2 hours and publishes them on the site as `data/space.json`, so phones read one small file instead of calling these services and can't run into their rate limits. The app only calls them directly if that file is missing or out of date.
 
 No notebook data is ever sent to these services. Open-Meteo and BigDataCloud only receive a city name or coordinates when the weather screen asks for them. The ISS and launch services receive no location at all; passes and "near you" launches are worked out on the phone.
+
+## Data bundled with the app
+
+| Data | Used for | License |
+| --- | --- | --- |
+| [GeoNames](https://www.geonames.org/) cities (`data/places.tsv`): US places over 5,000 people, places worldwide over 100,000, and capitals | City suggestions while typing, which forgive spelling mistakes and never leave the phone | CC BY 4.0, credited in the app ("Places from GeoNames") |
 
 ## Fonts (bundled in `fonts/`)
 
@@ -44,5 +53,6 @@ Both were downloaded from Google Fonts.
 - Google Chrome and Playwright: automated testing and screenshots
 - ImageMagick: resizing the app icons
 - esbuild: bundling the satellite.js functions into one file
+- GitHub Actions: publishing the site and refreshing the space data
 - Skyfield (Python): checking the app's ISS pass times against an independent calculation
 
