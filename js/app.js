@@ -75,5 +75,11 @@ setInterval(() => {
 }, 10000);
 
 if ('serviceWorker' in navigator) {
+  // When a new version takes over, reload so it's used right away, but only from the weather
+  // screen with nothing typed. Never while the notebook is open.
+  const hadVersion = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadVersion && !V.isUnlocked() && !document.querySelector('#weather').hidden && !document.querySelector('#wx-q').value) location.reload();
+  });
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
