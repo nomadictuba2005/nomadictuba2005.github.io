@@ -1,5 +1,5 @@
 // Offline support: cache the app shell. Weather API calls always go to the network.
-const VERSION = 'breeze-v15';
+const VERSION = 'breeze-v16';
 const SHELL = [
   './',
   'index.html',

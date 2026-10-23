@@ -1,7 +1,10 @@
 // The disguise: a real, working weather app powered by Open-Meteo (free, no API key).
 
-import { issPasses, upcomingLaunches } from './space.js';
-import { loadPlaces, suggest } from './places.js';
+
+// The extras load on their own, so if one fails (an old browser, a bad file) the forecast still works
+let spaceMod, placesMod;
+const space = () => spaceMod ||= import('./space.js').catch(() => null);
+const places = () => placesMod ||= import('./places.js').then(async m => { await m.loadPlaces(); return m; }).catch(() => null);
 
 const PREFS_KEY = 'breeze.prefs';
 const CACHE_KEY = 'breeze.lastWeather';
@@ -353,8 +356,11 @@ function renderSpace(city, tz) {
     const first = $('#wx-space .rocket');
     if (first && scrollWatch && !launchedOnScroll) { scrollWatch.disconnect(); scrollWatch.observe(first); }
   };
-  issPasses(city.lat, city.lon).then(p => { parts.iss = issView(p, tz); show(); }, () => {});
-  upcomingLaunches(city.lat, city.lon).then(l => { parts.launches = launchView(l); show(); }, () => {});
+  space().then(m => {
+    if (!m) return;
+    m.issPasses(city.lat, city.lon).then(p => { parts.iss = issView(p, tz); show(); }, () => {});
+    m.upcomingLaunches(city.lat, city.lon).then(l => { parts.launches = launchView(l); show(); }, () => {});
+  });
 }
 
 function render(city, w) {
@@ -442,37 +448,28 @@ function showResults(list) {
 
 // `onQuery(text)` is called first for every search. If it returns true the text
 // was handled (e.g. it was the secret code) and is never sent to the network.
-export function initWeather({ onQuery }) {
-  const form = $('#wx-search');
-  const input = $('#wx-q');
+// A city search. app.js calls this only after checking the text isn't the secret code.
+export async function search(q) {
+  // Our own suggestions first (they forgive typos), then anything else Open-Meteo knows
+  const local = (await places())?.suggest(q) || [];
+  const remote = (await geocode(q).catch(() => [])).filter(r => !local.some(l =>
+    Math.abs(l.lat - r.lat) < 0.15 && Math.abs(l.lon - r.lon) < 0.15 && l.name.split(',')[0] === r.name.split(',')[0]));
+  showResults([...local, ...remote].slice(0, 6));
+}
 
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-    const q = input.value.trim();
-    input.blur();
-    if (!q) return;
-    if (await onQuery(q)) {
-      input.value = '';
-      $('#wx-results').hidden = true;
-      return;
-    }
-    // Our own suggestions first (they forgive typos), then anything else Open-Meteo knows
-    const local = suggest(q);
-    const remote = (await geocode(q)).filter(r => !local.some(l =>
-      Math.abs(l.lat - r.lat) < 0.15 && Math.abs(l.lon - r.lon) < 0.15 && l.name.split(',')[0] === r.name.split(',')[0]));
-    showResults([...local, ...remote].slice(0, 6));
-  });
+// The search form itself belongs to app.js, so the notebook can open even if this file fails.
+export function initWeather() {
+  const input = $('#wx-q');
 
   // Suggestions while typing come from the bundled place list, so nothing typed here
   // (including the secret code) goes over the network before Enter is pressed.
   let typing;
-  input.addEventListener('focus', loadPlaces, { once: true });
+  input.addEventListener('focus', places, { once: true });
   input.addEventListener('input', () => {
     clearTimeout(typing);
     typing = setTimeout(async () => {
       if (!input.value.trim()) { $('#wx-results').hidden = true; return; }
-      await loadPlaces();
-      const list = suggest(input.value);
+      const list = (await places())?.suggest(input.value) || [];
       if (list.length) showResults(list); else $('#wx-results').hidden = true;
     }, 80);
   });
@@ -493,8 +490,10 @@ export function initWeather({ onQuery }) {
   });
 
   // Show cached weather instantly, then refresh
-  const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-  if (cached && cached.unit === prefs.unit) render(cached.city, cached.w);
+  try {
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if (cached && cached.unit === prefs.unit) render(cached.city, cached.w);
+  } catch {} // a bad saved forecast just means waiting for a fresh one
   if (prefs.city) load(prefs.city); else locate();
 
   document.addEventListener('visibilitychange', () => {
