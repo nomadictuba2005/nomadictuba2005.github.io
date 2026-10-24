@@ -1,9 +1,9 @@
 // Hotlines, checklists and lists for the notebook, in English and Spanish.
 // Hotline numbers are US national services.
-import { getLang } from './i18n.js';
+import { pick } from './i18n.js';
 
-// Each text field is { en, es }; L() picks the current language.
-const L = v => (v && typeof v === 'object' && 'en' in v ? v[getLang()] ?? v.en : v);
+// Each text field is { en, es }; L() picks the current language (see pick in i18n.js).
+const L = pick;
 
 const RESOURCES = [
   {

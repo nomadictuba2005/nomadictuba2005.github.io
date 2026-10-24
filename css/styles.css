@@ -388,9 +388,7 @@ input[type=checkbox]:checked {
   position: absolute; top: calc(var(--safe-top) + 12px); left: 20px; right: 16px;
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
 }
-.lang-switch { display: flex; gap: 4px; padding: 4px; background: var(--wash); border-radius: 12px; }
-.lang-switch button { border: 0; background: none; border-radius: 9px; padding: 8px 12px; font-weight: 700; font-size: 14px; }
-.lang-switch button.on { background: var(--ink); color: var(--paper); }
+.lang-switch { border: 0; padding: 10px 14px; background: var(--wash); border-radius: 12px; font-weight: 700; font-size: 15px; }
 .setup-page h1 { font-size: 30px; line-height: 1.15; margin: 0 0 10px; }
 .setup-page > p { font-size: 17px; color: var(--ink-2); margin: 0 0 16px; }
 .setup-alt { margin-top: 22px; color: var(--ink-2); }

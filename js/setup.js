@@ -14,9 +14,9 @@ export function showSetup({ onReady }) {
   box.innerHTML = `
     <div class="setup-page">
       <div class="setup-top">
-        <div class="lang-switch" role="group" aria-label="Language / Idioma">
-          ${LANGS.map(([code, name]) => `<button type="button" data-lang="${code}" class="${getLang() === code ? 'on' : ''}">${name}</button>`).join('')}
-        </div>
+        <select class="lang-switch" id="setup-lang" aria-label="Language">
+          ${LANGS.map(([code, name]) => `<option value="${code}" ${getLang() === code ? 'selected' : ''}>${name}</option>`).join('')}
+        </select>
         <button class="hide-btn" id="setup-cancel">${t('top.hide')}</button>
       </div>
       <h1>${t('setup.title')}</h1>
@@ -44,10 +44,10 @@ export function showSetup({ onReady }) {
   box.querySelector('#setup-cancel').addEventListener('click', hideSetup);
 
   // Switching language redraws the screen in the new language
-  box.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click', () => {
-    setLang(b.dataset.lang);
+  box.querySelector('#setup-lang').addEventListener('change', e => {
+    setLang(e.target.value);
     showSetup({ onReady });
-  }));
+  });
 
   box.querySelector('#setup-form').addEventListener('submit', async e => {
     e.preventDefault();

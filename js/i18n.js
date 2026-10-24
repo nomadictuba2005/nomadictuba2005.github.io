@@ -1,6 +1,12 @@
-// English and Spanish text for the notebook and setup screens.
+// Text for the notebook and setup screens. English and Spanish are here; the other languages
+// are in js/lang/, where content strings (from content.js and local.js) are looked up by their English.
 // t('key', { n: 3 }) looks up a string and fills in {placeholders}.
 // tn('key', n) picks the `.one` or `.many` form for a count.
+
+import * as zh from './lang/zh.js';
+import * as fr from './lang/fr.js';
+import * as vi from './lang/vi.js';
+import * as hi from './lang/hi.js';
 
 const STR = {
   en: {
@@ -414,7 +420,12 @@ const STR = {
   },
 };
 
-export const LANGS = [['en', 'English'], ['es', 'Español']];
+STR.zh = zh.UI; STR.fr = fr.UI; STR.vi = vi.UI; STR.hi = hi.UI;
+const CONTENT = { zh: zh.CONTENT, fr: fr.CONTENT, vi: vi.CONTENT, hi: hi.CONTENT };
+
+// Each language's name in itself
+export const LANGS = [['en', 'English'], ['es', 'Español'], ['zh', '中文'], ['fr', 'Français'], ['vi', 'Tiếng Việt'], ['hi', 'हिन्दी']];
+const LOCALES = { en: 'en-US', es: 'es-US', zh: 'zh-CN', fr: 'fr-FR', vi: 'vi-VN', hi: 'hi-IN' };
 
 let lang = 'en';
 
@@ -426,7 +437,10 @@ export function setLang(l) {
 export const getLang = () => lang;
 
 // Locale for dates and times
-export const locale = () => (lang === 'es' ? 'es-US' : 'en-US');
+export const locale = () => LOCALES[lang];
+
+// Content text is written as { en, es }; other languages look up the English
+export const pick = v => (v && typeof v === 'object' && 'en' in v ? v[lang] ?? CONTENT[lang]?.[v.en] ?? v.en : v);
 
 export function t(key, vars) {
   let s = STR[lang][key] ?? STR.en[key] ?? key;
