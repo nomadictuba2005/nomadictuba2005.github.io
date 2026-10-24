@@ -36,17 +36,6 @@ const smsLink = (n, body = '') => `sms:${n.replace(/[^\d+]/g, '')}${body ? `?&bo
 const hotlineLink = () => `<a href="${telLink(HOTLINE)}">${HOTLINE}</a>`;
 const kbOnly = s => `<span class="kb-only">${s}</span>`;
 
-// While developing on localhost, call/text links only show what they would do,
-// so testing never dials 911 or texts anyone. On the real site they work normally.
-const TEST_MODE = ['localhost', '127.0.0.1'].includes(location.hostname);
-function dial(href) {
-  if (!TEST_MODE) { location.href = href; return; }
-  const [scheme, rest] = href.split(':');
-  const [num, query] = rest.split('?');
-  const body = new URLSearchParams(query?.replace(/^&/, '') || '').get('body');
-  toast(scheme === 'tel' ? t('test.call', { n: num }) : t('test.text', { n: num }) + (body ? `: “${body.slice(0, 40)}${body.length > 40 ? '…' : ''}”` : ''));
-}
-
 export const autoLockSuspended = () => suspendLock;
 export const autoLockMinutes = () => data()?.settings.autoLockMin || 5;
 
@@ -691,12 +680,6 @@ async function printReport() {
 // ---------- Events ----------
 
 async function onClick(ev) {
-  const link = ev.target.closest('a[href^="tel:"],a[href^="sms:"]');
-  if (link && TEST_MODE) {
-    ev.preventDefault();
-    dial(link.getAttribute('href'));
-    return;
-  }
   const el = ev.target.closest('[data-tab],[data-act]');
   if (!el) return;
   if (el.dataset.tab) {
@@ -813,7 +796,7 @@ async function onClick(ev) {
         const pos = await getLocation();
         if (pos) msg += `\n${t('alert.where')} https://maps.google.com/?q=${pos.latitude.toFixed(5)},${pos.longitude.toFixed(5)}`;
       }
-      dial(smsLink(c.phone, msg));
+      location.href = smsLink(c.phone, msg);
       break;
     }
 

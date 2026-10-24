@@ -10,7 +10,6 @@ const STR = {
 
     // general
     'saved': 'Saved', 'save': 'Save', 'cancel': 'Cancel', 'close': 'Close', 'remove': 'Remove', 'call': 'Call', 'text': 'Text', 'website': 'Website',
-    'test.call': 'Test mode: would call {n}', 'test.text': 'Test mode: would text {n}',
     'photo.bad': 'Breeze can’t open that file. Try a different photo.',
     'days.one': '{n} day', 'days.many': '{n} days',
     'minutes.one': '{n} minute', 'minutes.many': '{n} minutes',
@@ -222,7 +221,6 @@ const STR = {
     'top.settings': 'Ajustes', 'top.hide': 'Ocultar', 'top.call911': 'Llamar al 911', 'top.sections': 'Secciones del cuaderno',
 
     'saved': 'Guardado', 'save': 'Guardar', 'cancel': 'Cancelar', 'close': 'Cerrar', 'remove': 'Quitar', 'call': 'Llamar', 'text': 'Mensaje', 'website': 'Sitio web',
-    'test.call': 'Modo de prueba: llamaría al {n}', 'test.text': 'Modo de prueba: enviaría un mensaje al {n}',
     'photo.bad': 'Breeze no puede abrir ese archivo. Prueba con otra foto.',
     'days.one': '{n} día', 'days.many': '{n} días',
     'minutes.one': '{n} minuto', 'minutes.many': '{n} minutos',
