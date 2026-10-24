@@ -60,6 +60,8 @@ js/weather.js         Open-Meteo weather, sun and moon, and illustrations
 js/space.js           ISS pass predictions and upcoming rocket launches
 js/places.js          typo-tolerant city suggestions, matched on the phone
 data/places.tsv       bundled city list (GeoNames)
+data/climate.json     typical weather by month, for when there's no connection
+js/climate.js         builds a believable forecast from it
 .github/              deploy workflow; refreshes data/space.json every 2 hours
 js/vendor/            satellite.js (orbit math), with its license
 js/vault.js           encryption + IndexedDB storage, backup/restore

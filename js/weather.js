@@ -2,8 +2,9 @@
 
 
 // The extras load on their own, so if one fails (an old browser, a bad file) the forecast still works
-let spaceMod, placesMod;
+let spaceMod, placesMod, climateMod;
 const space = () => spaceMod ||= import('./space.js').catch(() => null);
+const climate = () => climateMod ||= import('./climate.js').catch(() => null);
 const places = () => placesMod ||= import('./places.js').then(async m => { await m.loadPlaces(); return m; }).catch(() => null);
 
 const PREFS_KEY = 'breeze.prefs';
@@ -317,7 +318,7 @@ const ROCKET = `<g class="smoke">${[-11, 0, 11].map((x, i) => `<circle cx="${x}"
   </g>`;
 
 function launchView(launches) {
-  if (!launches) return `<div class="wx-orb"><svg viewBox="-34 -34 72 72" aria-hidden="true">${ROCKET}</svg><p><b>Rocket launches</b><span>${noInternet()
+  if (!launches) return `<div class="wx-orb"><svg class="rocket" viewBox="-34 -34 72 72" aria-hidden="true">${ROCKET}</svg><p><b>Rocket launches</b><span>${noInternet()
     ? 'Connect to the internet to see upcoming launches.'
     : 'The launch schedule isn’t loading right now. Try again later.'}</span></p></div>`;
   if (!launches.length) return '';
@@ -362,7 +363,7 @@ function renderSpace(city, tz) {
     if (run !== spaceRun) return;
     $('#wx-space').innerHTML = parts.iss + parts.launches;
     $('#wx-space-title').hidden = !$('#wx-space').innerHTML;
-    const first = $('#wx-space .rocket');
+    const first = $('#wx-space .wx-launches .rocket');
     if (first && scrollWatch && !launchedOnScroll) { scrollWatch.disconnect(); scrollWatch.observe(first); }
   };
   space().then(m => {
@@ -384,7 +385,7 @@ function render(city, w) {
 
   const u = prefs.unit === 'C' ? 'km/h' : 'mph';
   $('#wx-city').textContent = city.name;
-  $('#wx-date').textContent = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+  $('#wx-date').textContent = today();
   $('#wx-art').innerHTML = artSvg(sky, isDay);
   const temp = `${Math.round(c.temperature_2m)}°`;
   $('#wx-temp').textContent = temp;
@@ -415,6 +416,62 @@ function render(city, w) {
   $('#wx-unit').textContent = `°${prefs.unit}`;
 }
 
+// ---------- Without a connection ----------
+// The screen should never look broken, since a weather app that doesn't work invites questions.
+
+const samePlace = (a, b) => a && b && Math.abs(a.lat - b.lat) < 0.1 && Math.abs(a.lon - b.lon) < 0.1;
+function savedForecast() {
+  try { return JSON.parse(localStorage.getItem(CACHE_KEY)); } catch { return null; }
+}
+
+// The last real forecast, moved on to the current hour, while it still covers the next few days
+function replay(saved, city) {
+  const w = saved?.w;
+  if (!samePlace(saved.city, city) || saved.unit !== prefs.unit || w?.utc_offset_seconds == null || !w.hourly?.time) return null;
+  const now = new Date(Date.now() + w.utc_offset_seconds * 1000).toISOString().slice(0, 16);
+  const day = w.daily.time.indexOf(now.slice(0, 10));
+  const start = w.hourly.time.indexOf(now.slice(0, 10) + 'T00:00');
+  if (day < 0 || start < 0 || w.daily.time.length - day < 3) return null;
+  const h = w.hourly.time.findIndex(t => t.slice(0, 13) === now.slice(0, 13));
+  const cut = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Array.isArray(v) ? v.slice(o === w.daily ? day : start) : v]));
+  const temp = w.hourly.temperature_2m[h];
+  return {
+    ...w,
+    current: {
+      ...w.current, time: now, temperature_2m: temp, weather_code: w.hourly.weather_code[h], is_day: w.hourly.is_day[h],
+      apparent_temperature: w.current.apparent_temperature + temp - w.current.temperature_2m,
+    },
+    hourly: cut(w.hourly),
+    daily: cut(w.daily),
+  };
+}
+
+function updatedAgo(at) {
+  const m = Math.round((Date.now() - at) / 6e4);
+  if (m < 1) return 'Updated just now';
+  if (m < 60) return `Updated ${m} minute${m === 1 ? '' : 's'} ago`;
+  if (m < 24 * 60) return `Updated ${Math.round(m / 60)} hour${Math.round(m / 60) === 1 ? '' : 's'} ago`;
+  return `Updated ${new Date(at).toLocaleDateString([], { weekday: 'long' })}`;
+}
+
+const today = () => new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+
+async function offline(city) {
+  const saved = savedForecast();
+  const old = saved && replay(saved, city);
+  if (old) {
+    render(saved.city, old);
+    if (saved.at) $('#wx-date').textContent = `${today()}. ${updatedAgo(saved.at)}.`;
+    return true;
+  }
+  // Nothing recent saved for this place, so show what the weather is usually like here this time of year
+  const typical = await (await climate())?.estimate(city, prefs.unit).catch(() => null);
+  if (!typical) return false;
+  render(city, typical);
+  $('#wx-date').textContent = `${today()}. Typical weather for this time of year.`;
+  return true;
+}
+
 async function load(city) {
   prefs.city = city;
   savePrefs();
@@ -423,14 +480,8 @@ async function load(city) {
     localStorage.setItem(CACHE_KEY, JSON.stringify({ city, w, unit: prefs.unit, at: Date.now() }));
     render(city, w);
   } catch {
-    let cached = null;
-    try { cached = JSON.parse(localStorage.getItem(CACHE_KEY)); } catch {}
-    if (cached && cached.unit === prefs.unit) {
-      // Keep showing the last forecast, but say how old it is
-      render(cached.city, cached.w);
-      const from = cached.at ? `the forecast from ${when(cached.at).replace(/^(Tonight|Today)/, w => w.toLowerCase())}` : 'your last forecast';
-      $('#wx-date').textContent = noInternet() ? `No internet. Showing ${from}.` : `Can’t update right now. Showing ${from}.`;
-    } else if (noInternet()) {
+    if (await offline(city)) return;
+    if (noInternet()) {
       $('#wx-city').textContent = 'No internet connection';
       $('#wx-summary').textContent = 'The forecast will load as soon as you’re back online.';
     } else {
@@ -517,8 +568,9 @@ export function initWeather() {
 
   // Show cached weather instantly, then refresh
   try {
-    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-    if (cached && cached.unit === prefs.unit) render(cached.city, cached.w);
+    const saved = savedForecast();
+    const old = saved && replay(saved, saved.city);
+    if (old) render(saved.city, old);
   } catch {} // a bad saved forecast just means waiting for a fresh one
   if (prefs.city) load(prefs.city); else locate();
 

@@ -27,6 +27,7 @@ No notebook data is ever sent to these services. Open-Meteo and BigDataCloud onl
 | Data | Used for | License |
 | --- | --- | --- |
 | [GeoNames](https://www.geonames.org/) cities (`data/places.tsv`): US places over 5,000 people, places worldwide over 100,000, and capitals | City suggestions while typing, which forgive spelling mistakes and never leave the phone | CC BY 4.0, credited in the app ("Places from GeoNames") |
+| [Open-Meteo](https://open-meteo.com/) historical weather API (ERA5), 2024–2025 (`data/climate.json`, built once by `.github/scripts/climate-data.mjs`) | Typical weather by month for 183 places, used to show a believable forecast when there's no connection and no recent saved forecast | CC BY 4.0, credited in the app ("Forecast from Open-Meteo") |
 
 ## Fonts (bundled in `fonts/`)
 
