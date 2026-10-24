@@ -67,7 +67,8 @@ js/vendor/            satellite.js (orbit math), with its license
 js/vault.js           encryption + IndexedDB storage, backup/restore
 js/hub.js             the hidden notebook UI
 js/content.js         hotlines, checklists, warning signs (English + Spanish)
-js/i18n.js            all notebook text in English and Spanish
+js/i18n.js            all notebook text in English and Spanish, and the language list
+js/lang/              Chinese, French, Vietnamese and Hindi translations
 js/local.js           state coalitions + local programs for "Near you"
 js/config.js          setup phrase and private setup link
 js/setup.js           notebook setup screen

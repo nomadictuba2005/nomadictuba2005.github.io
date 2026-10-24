@@ -42,6 +42,7 @@ Both were downloaded from Google Fonts.
 
 - Hotline numbers and descriptions come from each organization's public information (National Domestic Violence Hotline, love is respect, RAINN, 988 Lifeline, Childhelp, StrongHearts Native Helpline).
 - The safety-plan checklist and the "signs you may be in more danger" list are based on widely published safety-planning guidance from domestic violence organizations, rewritten in plain language.
+- Chinese, French, Vietnamese and Hindi translations (`js/lang/`) were drafted with Claude (an AI assistant from Anthropic) from the English text, October 2026. They still need review by native speakers.
 
 ## Local help data (bundled in `js/local.js`)
 

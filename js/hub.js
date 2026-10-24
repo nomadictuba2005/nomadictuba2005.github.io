@@ -4,7 +4,7 @@ import * as V from './vault.js';
 import { icon } from './icons.js';
 import { content, typeId, typeLabel } from './content.js';
 import { localHelp } from './local.js';
-import { t, tn, setLang, getLang, locale, LANGS } from './i18n.js';
+import { t, tn, setLang, getLang, locale, LANGS, pick } from './i18n.js';
 
 let root = null;
 let opts = {};
@@ -330,10 +330,9 @@ const resourceItem = r => `
 
 function localSection() {
   const near = localHelp();
-  const L = v => (v && typeof v === 'object' ? v[getLang()] ?? v.en : v);
   const items = [];
   if (near) {
-    items.push(...near.resources.map(r => ({ ...r, desc: L(r.desc) })));
+    items.push(...near.resources.map(r => ({ ...r, desc: pick(r.desc) })));
     if (near.coalition) items.push({ name: near.coalition.name, desc: t('help.local.coalition.desc', { state: near.state }), web: near.coalition.web });
   }
   items.push({ name: t('help.local.211.name'), desc: t('help.local.211.desc'), call: '211', callLabel: '211' });
