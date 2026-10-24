@@ -130,6 +130,10 @@ function glyph(sky) {
 
 // ---------- Data fetching ----------
 
+// Whether the phone knows it has no connection. When it's online but a service still fails,
+// the messages say the service is down instead.
+const noInternet = () => navigator.onLine === false;
+
 async function fetchWeather(city) {
   const unit = prefs.unit === 'C' ? 'celsius' : 'fahrenheit';
   const wind = prefs.unit === 'C' ? 'kmh' : 'mph';
@@ -145,7 +149,7 @@ async function fetchWeather(city) {
 
 async function geocode(q) {
   const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=en&format=json`);
-  if (!res.ok) return [];
+  if (!res.ok) throw new Error('geocode ' + res.status);
   const json = await res.json();
   return (json.results || []).map(r => ({
     name: [r.name, r.admin1, r.country_code === 'US' ? null : r.country].filter(Boolean).join(', '),
@@ -289,8 +293,10 @@ function when(t, tz) {
 const ISS_ART = print('<rect x="-34" y="-13" width="22" height="26" rx="3"/><rect x="12" y="-13" width="22" height="26" rx="3"/><rect x="-14" y="-6" width="28" height="12" rx="5"/>', '#8c9cf5', '#ffc93c', 3, 3);
 
 function issView(passes, tz) {
-  if (!passes) return '';
   const art = `<svg viewBox="-34 -34 72 72" aria-hidden="true">${ISS_ART}</svg>`;
+  if (!passes) return `<div class="wx-orb">${art}<p><b>Space station</b><span>${noInternet()
+    ? 'Connect to the internet to see when it passes over.'
+    : 'Can’t get its orbit right now. Try again later.'}</span></p></div>`;
   if (!passes.length) return `<div class="wx-orb">${art}<p><b>Space station</b><span>Not visible from here in the next 10 days.</span></p></div>`;
   const p = passes[0];
   const height = p.maxEl >= 60 ? 'almost overhead' : p.maxEl >= 30 ? 'high in the sky' : 'low in the sky';
@@ -311,7 +317,10 @@ const ROCKET = `<g class="smoke">${[-11, 0, 11].map((x, i) => `<circle cx="${x}"
   </g>`;
 
 function launchView(launches) {
-  if (!launches?.length) return '';
+  if (!launches) return `<div class="wx-orb"><svg viewBox="-34 -34 72 72" aria-hidden="true">${ROCKET}</svg><p><b>Rocket launches</b><span>${noInternet()
+    ? 'Connect to the internet to see upcoming launches.'
+    : 'The launch schedule isn’t loading right now. Try again later.'}</span></p></div>`;
+  if (!launches.length) return '';
   return `<ul class="wx-launches">${launches.map(l => {
     const exact = ['SEC', 'MIN', 'HR'].includes(l.precision);
     const time = exact ? when(l.net) : `Around ${at(l.net, undefined, { month: 'short', day: 'numeric' })}`;
@@ -358,8 +367,8 @@ function renderSpace(city, tz) {
   };
   space().then(m => {
     if (!m) return;
-    m.issPasses(city.lat, city.lon).then(p => { parts.iss = issView(p, tz); show(); }, () => {});
-    m.upcomingLaunches(city.lat, city.lon).then(l => { parts.launches = launchView(l); show(); }, () => {});
+    m.issPasses(city.lat, city.lon).catch(() => null).then(p => { parts.iss = issView(p, tz); show(); });
+    m.upcomingLaunches(city.lat, city.lon).catch(() => null).then(l => { parts.launches = launchView(l); show(); });
   });
 }
 
@@ -411,12 +420,23 @@ async function load(city) {
   savePrefs();
   try {
     const w = await fetchWeather(city);
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ city, w, unit: prefs.unit }));
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ city, w, unit: prefs.unit, at: Date.now() }));
     render(city, w);
   } catch {
-    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-    if (cached && cached.unit === prefs.unit) render(cached.city, cached.w);
-    else $('#wx-summary').textContent = "Can't reach the weather service. Check your connection.";
+    let cached = null;
+    try { cached = JSON.parse(localStorage.getItem(CACHE_KEY)); } catch {}
+    if (cached && cached.unit === prefs.unit) {
+      // Keep showing the last forecast, but say how old it is
+      render(cached.city, cached.w);
+      const from = cached.at ? `the forecast from ${when(cached.at).replace(/^(Tonight|Today)/, w => w.toLowerCase())}` : 'your last forecast';
+      $('#wx-date').textContent = noInternet() ? `No internet. Showing ${from}.` : `Can’t update right now. Showing ${from}.`;
+    } else if (noInternet()) {
+      $('#wx-city').textContent = 'No internet connection';
+      $('#wx-summary').textContent = 'The forecast will load as soon as you’re back online.';
+    } else {
+      $('#wx-city').textContent = 'Weather unavailable';
+      $('#wx-summary').textContent = 'Can’t reach the weather service right now. Try again in a few minutes.';
+    }
   }
 }
 
@@ -446,15 +466,21 @@ function showResults(list) {
   ul.hidden = false;
 }
 
-// `onQuery(text)` is called first for every search. If it returns true the text
-// was handled (e.g. it was the secret code) and is never sent to the network.
 // A city search. app.js calls this only after checking the text isn't the secret code.
 export async function search(q) {
   // Our own suggestions first (they forgive typos), then anything else Open-Meteo knows
   const local = (await places())?.suggest(q) || [];
-  const remote = (await geocode(q).catch(() => [])).filter(r => !local.some(l =>
-    Math.abs(l.lat - r.lat) < 0.15 && Math.abs(l.lon - r.lon) < 0.15 && l.name.split(',')[0] === r.name.split(',')[0]));
-  showResults([...local, ...remote].slice(0, 6));
+  const remote = await geocode(q).catch(() => null);
+  if (!remote && !local.length) {
+    // Don't blame the spelling when the real problem is the connection
+    $('#wx-results').innerHTML = `<li class="empty">${noInternet()
+      ? 'Connect to the internet to search for places.'
+      : 'Can’t search right now. Try again in a few minutes.'}</li>`;
+    $('#wx-results').hidden = false;
+    return;
+  }
+  showResults([...local, ...(remote || []).filter(r => !local.some(l =>
+    Math.abs(l.lat - r.lat) < 0.15 && Math.abs(l.lon - r.lon) < 0.15 && l.name.split(',')[0] === r.name.split(',')[0]))].slice(0, 6));
 }
 
 // The search form itself belongs to app.js, so the notebook can open even if this file fails.
@@ -495,6 +521,9 @@ export function initWeather() {
     if (cached && cached.unit === prefs.unit) render(cached.city, cached.w);
   } catch {} // a bad saved forecast just means waiting for a fresh one
   if (prefs.city) load(prefs.city); else locate();
+
+  // Pick up where it left off once the connection comes back
+  window.addEventListener('online', () => { if (prefs.city) load(prefs.city); else locate(); });
 
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && prefs.city) load(prefs.city);

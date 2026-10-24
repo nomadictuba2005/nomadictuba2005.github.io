@@ -35,7 +35,8 @@ function cached(key, maxAge, fetcher, fallback = () => null) {
 // (.github/scripts/space-data.mjs). The ISS orbit comes from here first; for launches it's the
 // backup when Launch Library is rate-limited or unreachable.
 let feed;
-const getFeed = () => feed ||= get('data/space.json').then(r => r.ok ? r.json() : null).catch(() => null);
+// A failed try isn't remembered, so it's asked again next time (e.g. after coming back online)
+const getFeed = () => feed ||= get('data/space.json').then(r => r.ok ? r.json() : null).catch(() => null).then(j => j || (feed = null));
 const fresh = (at, hours) => at && Date.now() - Date.parse(at) < hours * 36e5;
 
 // ---------- ISS ----------
