@@ -356,7 +356,10 @@ function helpView() {
         <a class="btn ghost sm" href="${telLink(c.phone)}">${t('call')}</a>
         <a class="btn ghost sm" href="${smsLink(c.phone)}">${t('text')}</a>
       </li>`).join('')}</ul>` : ''}
-    <button class="btn ghost" data-act="new-contact">${t('help.addPerson')}</button>
+    <div class="actions">
+      ${d.contacts.length ? `<button class="btn primary" data-act="alert">${t('home.trusted.send')}</button>` : ''}
+      <button class="btn ghost" data-act="new-contact">${t('help.addPerson')}</button>
+    </div>
     <div class="form spaced">
       <label>${t('help.message')}<textarea rows="2" data-alert-msg>${esc(d.alertMessage)}</textarea></label>
     </div>
