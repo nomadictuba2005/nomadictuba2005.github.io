@@ -143,7 +143,8 @@ async function fetchWeather(city) {
     + '&hourly=temperature_2m,weather_code,is_day,cloud_cover'
     + '&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max,sunrise,sunset,daylight_duration'
     + `&temperature_unit=${unit}&wind_speed_unit=${wind}&timezone=auto&forecast_days=7`;
-  const res = await fetch(url);
+  // Give up after 8 seconds so a stalled connection falls back to the saved forecast
+  const res = await fetch(url, { signal: AbortSignal.timeout?.(8000) });
   if (!res.ok) throw new Error('weather ' + res.status);
   return res.json();
 }
@@ -160,7 +161,8 @@ async function geocode(q) {
 
 async function reverseName(lat, lon) {
   try {
-    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`,
+      { signal: AbortSignal.timeout?.(4000) });
     const j = await res.json();
     // `city` is sometimes a census district or metro area (e.g. "South Coast"),
     // so prefer the real city (admin level 8), then the locality.
@@ -472,14 +474,24 @@ async function offline(city) {
   return true;
 }
 
+// Each load gets a number so a slow answer for an old place can't replace a newer one
+let loadSeq = 0;
+
 async function load(city) {
+  const mine = ++loadSeq;
   prefs.city = city;
   savePrefs();
+  // Show the last forecast for this place right away, so the screen is never blank while the network answers
+  const saved = savedForecast();
+  const old = saved && replay(saved, city);
+  if (old) render(saved.city, old);
   try {
     const w = await fetchWeather(city);
+    if (mine !== loadSeq) return;
     localStorage.setItem(CACHE_KEY, JSON.stringify({ city, w, unit: prefs.unit, at: Date.now() }));
     render(city, w);
   } catch {
+    if (mine !== loadSeq) return;
     if (await offline(city)) return;
     if (noInternet()) {
       $('#wx-city').textContent = 'No internet connection';
@@ -496,10 +508,13 @@ function locate() {
   navigator.geolocation.getCurrentPosition(
     async pos => {
       const { latitude: lat, longitude: lon } = pos.coords;
+      // Location fixes wobble a little. If this one is near the saved place, keep that place
+      // and its name instead of jumping to a neighboring town.
+      if (samePlace(prefs.city, { lat, lon })) return load(prefs.city);
       load({ name: await reverseName(lat, lon), lat, lon });
     },
     () => load(prefs.city || DEFAULT_CITY),
-    { timeout: 8000, maximumAge: 600000 },
+    { timeout: 3000, maximumAge: 1800000 },
   );
 }
 
