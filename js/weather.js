@@ -545,8 +545,12 @@ export async function search(q) {
     $('#wx-results').hidden = false;
     return;
   }
-  showResults([...local, ...(remote || []).filter(r => !local.some(l =>
-    Math.abs(l.lat - r.lat) < 0.15 && Math.abs(l.lon - r.lon) < 0.15 && l.name.split(',')[0] === r.name.split(',')[0]))].slice(0, 6));
+  const all = [...local, ...(remote || []).filter(r => !local.some(l =>
+    Math.abs(l.lat - r.lat) < 0.15 && Math.abs(l.lon - r.lon) < 0.15 && l.name.split(',')[0] === r.name.split(',')[0]))];
+  // Places named exactly what was typed go first, so a fuzzy "Sonoma" never pushes out the real "Sonora"
+  const typed = q.split(',')[0].trim().toLowerCase();
+  const exact = c => { const n = c.name.split(',')[0].toLowerCase(); return typed === n || typed.startsWith(n + ' '); };
+  showResults([...all.filter(exact), ...all.filter(c => !exact(c))].slice(0, 6));
 }
 
 // The search form itself belongs to app.js, so the notebook can open even if this file fails.
