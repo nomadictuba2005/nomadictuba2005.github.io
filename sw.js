@@ -1,5 +1,5 @@
-// Offline support: cache the app shell. Weather API calls always go to the network.
-const VERSION = 'breeze-v23';
+// Offline support: the app opens from its cache instantly and refreshes it in the background. Weather API calls always go to the network.
+const VERSION = 'breeze-v24';
 const SHELL = [
   './',
   'index.html',
@@ -55,18 +55,29 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
-  // Network first so updates show up, falling back to the cache when offline.
   // 'no-cache' makes the browser check with the server instead of reusing a copy up to 10 minutes old.
-  const fresh = e.request.mode === 'navigate'
+  const fresh = () => fetch(e.request.mode === 'navigate'
     ? new Request(e.request.url, { cache: 'no-cache' })
-    : new Request(e.request, { cache: 'no-cache' });
-  e.respondWith(
-    fetch(fresh)
-      .then(res => {
-        const copy = res.clone();
-        caches.open(VERSION).then(c => c.put(e.request, copy));
-        return res;
-      })
-      .catch(() => caches.match(e.request, { ignoreSearch: true }).then(r => r || caches.match('index.html'))),
-  );
+    : new Request(e.request, { cache: 'no-cache' }));
+
+  // The ISS and launch feed changes every 2 hours, so it stays network first
+  if (url.pathname.endsWith('/data/space.json')) {
+    e.respondWith(fresh()
+      .then(res => { const copy = res.clone(); caches.open(VERSION).then(c => c.put(e.request, copy)); return res; })
+      .catch(() => caches.match(e.request, { ignoreSearch: true })));
+    return;
+  }
+
+  // Everything else opens straight from the cache, so a slow or flaky connection never holds up the
+  // weather screen. A fresh copy is fetched in the background for next time. New releases still
+  // arrive whole, because bumping VERSION installs a complete new cache.
+  e.respondWith(caches.open(VERSION).then(async c => {
+    const hit = await c.match(e.request, { ignoreSearch: true });
+    const update = fresh().then(res => { if (res.ok) c.put(e.request, res.clone()); return res; });
+    if (hit) {
+      e.waitUntil(update.catch(() => {}));
+      return hit;
+    }
+    return update.catch(() => c.match('index.html'));
+  }));
 });
