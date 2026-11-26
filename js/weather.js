@@ -135,6 +135,9 @@ function glyph(sky) {
 // the messages say the service is down instead.
 const noInternet = () => navigator.onLine === false;
 
+// After the weather service fails, skip the wait for a couple of minutes and show the fallback right away
+let serviceDownUntil = 0;
+
 async function fetchWeather(city) {
   const unit = prefs.unit === 'C' ? 'celsius' : 'fahrenheit';
   const wind = prefs.unit === 'C' ? 'kmh' : 'mph';
@@ -143,8 +146,8 @@ async function fetchWeather(city) {
     + '&hourly=temperature_2m,weather_code,is_day,cloud_cover'
     + '&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max,sunrise,sunset,daylight_duration'
     + `&temperature_unit=${unit}&wind_speed_unit=${wind}&timezone=auto&forecast_days=7`;
-  // Give up after 8 seconds so a stalled connection falls back to the saved forecast
-  const res = await fetch(url, { signal: AbortSignal.timeout?.(8000) });
+  // The screen already shows a fallback by now (see load), so a slow answer can still replace it
+  const res = await fetch(url, { signal: AbortSignal.timeout?.(15000) });
   if (!res.ok) throw new Error('weather ' + res.status);
   return res.json();
 }
@@ -458,10 +461,12 @@ function updatedAgo(at) {
 
 const today = () => new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
 
-async function offline(city) {
+// `still` says whether this fallback is still wanted by the time it's ready
+async function offline(city, still = () => true) {
   const saved = savedForecast();
   const old = saved && replay(saved, city);
   if (old) {
+    if (!still()) return true;
     render(saved.city, old);
     if (saved.at) $('#wx-date').textContent = `${today()}. ${updatedAgo(saved.at)}.`;
     return true;
@@ -469,6 +474,7 @@ async function offline(city) {
   // Nothing recent saved for this place, so show what the weather is usually like here this time of year
   const typical = await (await climate())?.estimate(city, prefs.unit).catch(() => null);
   if (!typical) return false;
+  if (!still()) return true;
   render(city, typical);
   $('#wx-date').textContent = `${today()}. Typical weather for this time of year.`;
   return true;
@@ -485,12 +491,23 @@ async function load(city) {
   const saved = savedForecast();
   const old = saved && replay(saved, city);
   if (old) render(saved.city, old);
+  // If the weather service is slow to answer, show the saved or typical forecast instead of waiting on it
+  let done = false;
+  const wanted = () => mine === loadSeq && !done;
+  const slow = old ? null : setTimeout(() => { if (wanted()) offline(city, wanted); },
+    serviceDownUntil > Date.now() ? 0 : 2500);
   try {
     const w = await fetchWeather(city);
+    done = true;
+    clearTimeout(slow);
+    serviceDownUntil = 0;
     if (mine !== loadSeq) return;
     localStorage.setItem(CACHE_KEY, JSON.stringify({ city, w, unit: prefs.unit, at: Date.now() }));
     render(city, w);
   } catch {
+    done = true;
+    clearTimeout(slow);
+    serviceDownUntil = Date.now() + 2 * 60 * 1000;
     if (mine !== loadSeq) return;
     if (await offline(city)) return;
     if (noInternet()) {

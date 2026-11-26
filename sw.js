@@ -1,5 +1,5 @@
 // Offline support: the app opens from its cache instantly and refreshes it in the background. Weather API calls always go to the network.
-const VERSION = 'breeze-v24';
+const VERSION = 'breeze-v25';
 const SHELL = [
   './',
   'index.html',
