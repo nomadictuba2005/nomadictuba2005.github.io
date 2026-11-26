@@ -1,87 +1,116 @@
-# Breeze ☁️
+# Breeze
 
-A pastel weather app with a hidden notebook inside for people experiencing domestic violence.
-Built for the Congressional App Challenge.
+Breeze is a weather app with a hidden, encrypted notebook inside it for people experiencing domestic violence.
 
-## How it works
+To anyone looking at the phone, it's a normal weather app with real forecasts. Typing a secret code into the city search opens a private notebook where someone can document abuse, plan for their safety, and find help. Nothing in the weather app mentions the notebook or abuse.
 
-| The weather app (what everyone sees) | The hidden notebook (only with the secret code) |
-| --- | --- |
-| Real weather: now, next 24 hours, 7 days | **Journal**: dated entries of what happened, how bad it was, injuries, witnesses, police report number, photos |
-| Flat pastel color for each kind of weather | **Abuser**: details police and courts ask for (description, car and plate, workplace, weapons) |
-| Installs like a normal app (PWA) | **Safety plan**: go-bag, home and phone checklists plus your own notes |
-| Nothing about abuse appears anywhere | **Get help**: hotlines to call or text, trusted people, a one-tap "send for help" text with your location |
-| | **Print or save as PDF**: the journal as a report for a protective order |
+Built for the 2026 Congressional App Challenge.
 
-**First time:** search `#notebook` in the city search to set up the notebook and choose a secret code.
-The app never shows or mentions the notebook on its own. Users would learn the phrase from wherever they found Breeze (an advocate, a school counselor, a hotline).
+Live at https://nomadictuba2005.github.io
 
-**After that:** type the secret code into the city search to open the notebook.
-**To hide it:** tap **Hide** or press **Esc**. It also hides itself when you switch apps or after a few minutes without use.
+## Features
 
-## Safety and privacy design
+**The weather app (what everyone sees)**
 
-- **Encrypted at rest.** All entries and photos are encrypted with AES-256-GCM. The key comes from the user's code (PBKDF2, 250,000 rounds). The code itself is never stored, so even someone who inspects the browser storage sees only scrambled data.
-- **No server, no accounts.** Everything stays on the device. The only network calls are for weather (Open-Meteo), naming your city, and the ISS orbit and launch schedule, and those last two never include your location.
-- **The code never leaves the device.** Searches are checked against the code locally *before* anything is sent to the weather service.
-- **Invisible from the weather app.** No setup screen, buttons, or text about abuse ever shows unless you type the setup phrase or your code. Esc or switching apps closes even the setup screen.
-- **No traces in the UI.** The notebook's HTML is deleted from the page when you hide it. The tab title and icon never change. Code fields are masked without being password fields, so password managers don't offer to save them.
-- **Photos stay hidden.** Photos are stored encrypted inside the app instead of the camera roll, and GPS/EXIF data is stripped.
-- **Panic tools:** the Hide button, hiding automatically, and Delete everything.
-- **Survives a broken or taken phone:** encrypted backup and restore.
+- Current weather, the next 24 hours, and a 7 day forecast
+- City search that handles typos and runs on the phone
+- Sunrise, sunset, moon phase, ISS passes, and upcoming rocket launches
+- A believable forecast even with no internet connection
+- Installs to the home screen like a regular app and works offline
+
+**The hidden notebook (only with the code)**
+
+- Journal: dated entries with what happened, how serious it was, injuries, witnesses, police report numbers, and photos
+- Abuser details that police and courts ask for, like a description, car and plate, workplace, and weapons
+- Safety plan: go-bag, home, and phone checklists plus personal notes
+- Get help: hotlines to call or text, trusted contacts, and a one tap text that sends your location
+- Print or save the journal as a PDF report for a protective order
+- Available in English, Spanish, Chinese, French, Vietnamese, and Hindi
+
+## How to open the notebook
+
+1. Type `#notebook` into the city search and press Enter. This only works before a notebook exists.
+2. Choose a secret code.
+3. From then on, typing that code into the city search opens the notebook.
+
+You can also go straight to setup with https://nomadictuba2005.github.io/#start-notebook. The link clears itself from the address bar.
+
+To close it quickly, tap Hide or press Esc. The notebook also locks itself when you switch apps or leave it alone for a few minutes.
+
+## Safety and privacy
+
+- Everything is encrypted on the device with AES-256-GCM. The key comes from the user's code (PBKDF2, 250,000 rounds), and the code is never stored.
+- There is no server and no account. Nothing in the notebook ever leaves the phone.
+- The code is checked on the phone before any search is sent to the weather service, so it never goes over the network.
+- City suggestions while typing come from a list bundled with the app, so nothing typed is sent anywhere until Enter.
+- When the notebook is hidden, its HTML is removed from the page. The tab title and icon never change.
+- Photos are stored encrypted inside the app instead of the camera roll, with location data stripped.
+- Encrypted backup and restore, in case the phone is broken or taken.
+- No analytics and no trackers.
+
+The only network requests are for weather (Open-Meteo), naming the current city (BigDataCloud), and ISS and launch data, which never includes the user's location.
 
 ## Run it locally
 
-Any static server works (service workers and Web Crypto need `localhost` or HTTPS):
+Breeze is plain HTML, CSS, and JavaScript with no build step. Service workers and Web Crypto need `localhost` or HTTPS, so use a local server instead of opening the file directly:
 
 ```bash
+git clone https://github.com/nomadictuba2005/nomadictuba2005.github.io.git
+cd nomadictuba2005.github.io
 python3 -m http.server 8000
-# open http://localhost:8000
 ```
 
-To test on your phone, deploy it (below). Phones need HTTPS.
+Then open http://localhost:8000.
 
-## Deploy (free)
+Any static server works, for example `npx serve` instead of Python.
 
-**GitHub Pages:** push this folder to a repo → Settings → Pages → deploy from the `main` branch root. (This copy is live at https://nomadictuba2005.github.io/.)
-Netlify or Cloudflare Pages also work: drag and drop the folder.
+To try it on a phone, it has to be served over HTTPS, so deploy it first.
 
-Then on a phone, open the URL and choose **Add to Home Screen** (iOS Safari: Share → Add to Home Screen).
+## Deploy
+
+On GitHub Pages, the workflow in `.github/workflows/pages.yml` deploys the site on every push and every 2 hours, which also refreshes the ISS and launch data in `data/space.json`. In the repo settings, set Pages to deploy from GitHub Actions.
+
+Netlify or Cloudflare Pages also work by uploading the folder.
+
+On a phone, open the site and use Add to Home Screen (in iOS Safari, it's under the Share button).
 
 ## Project structure
 
 ```
 index.html            weather app markup
-fonts/                Bagel Fat One + Atkinson Hyperlegible, with their licenses
-CREDITS.md            outside services, fonts and tools (required by the contest rules)
 css/styles.css        all styles, including the print layout for reports
-js/app.js             wiring: unlock, quick exit, auto-lock, service worker
-js/weather.js         Open-Meteo weather, sun and moon, and illustrations
-js/space.js           ISS pass predictions and upcoming rocket launches
-js/places.js          typo-tolerant city suggestions, matched on the phone
-data/places.tsv       bundled city list (GeoNames)
-data/climate.json     typical weather by month, for when there's no connection
-js/climate.js         builds a believable forecast from it
-.github/              deploy workflow; refreshes data/space.json every 2 hours
-js/vendor/            satellite.js (orbit math), with its license
-js/vault.js           encryption + IndexedDB storage, backup/restore
-js/hub.js             the hidden notebook UI
-js/content.js         hotlines, checklists, warning signs (English + Spanish)
-js/i18n.js            all notebook text in English and Spanish, and the language list
-js/lang/              Chinese, French, Vietnamese and Hindi translations
-js/local.js           state coalitions + local programs for "Near you"
-js/config.js          setup phrase and private setup link
+js/app.js             unlocking, quick exit, auto-lock, service worker setup
+js/weather.js         forecasts, sun and moon, illustrations
+js/places.js          typo-tolerant city suggestions
+js/climate.js         offline forecast built from typical weather
+js/space.js           ISS passes and rocket launches
+js/vault.js           encryption, storage (IndexedDB), backup and restore
+js/hub.js             the notebook interface
 js/setup.js           notebook setup screen
+js/content.js         hotlines, checklists, and warning signs
+js/i18n.js            notebook text in English and Spanish, and the language list
+js/lang/              Chinese, French, Vietnamese, and Hindi translations
+js/local.js           state coalitions and local programs
+js/config.js          setup phrase and setup link
+js/vendor/            satellite.js for orbit math
+data/places.tsv       city list from GeoNames
+data/climate.json     typical weather by month
 sw.js                 offline caching
-manifest.webmanifest  PWA install info
+manifest.webmanifest  install info
+.github/              deploy workflow and data scripts
 ```
 
-No frameworks and no build step: plain HTML, CSS and JavaScript.
+## Notes for developers
 
-## Notes
-
-- The setup phrase and the private setup link (`#start-notebook`) live in `js/config.js`. Both only work when no notebook exists yet. Change them before publishing if they've been shown publicly (e.g. in your demo video).
+- The setup phrase and setup link are in `js/config.js`. Change them if they've been shown publicly, for example in a demo video.
+- When you change any app files, bump `VERSION` in `sw.js` so installed copies update.
 - To add local programs for another area, add an entry to `AREAS` in `js/local.js`.
-- Someone who opens the browser's developer tools could read the app's source code and see what it does (their data stays encrypted). That's why nothing in the site's name or address mentions abuse.
-- If you change files, bump `VERSION` in `sw.js` so installed copies update.
-- Hotline numbers are US national services. Double-check them before your demo.
+- Hotline numbers are US national services. Check them before a demo.
+
+## Credits
+
+Outside services, data, fonts, and the one bundled library are listed in [CREDITS.md](CREDITS.md).
+
+## License
+
+MIT. See [LICENSE](LICENSE). Fonts and the bundled satellite.js library keep their own licenses, listed in CREDITS.md.
